@@ -3,6 +3,7 @@ import { defineConfig } from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   srcDir: "docs",
+  base: process.env.GITHUB_ACTIONS ? '/vue-design-patterns/' : '/',
 
   title: "Vue Design Patterns",
   description: "Vue Design Patterns",
