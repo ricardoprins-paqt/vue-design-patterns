@@ -13,7 +13,7 @@ The Controller Component is the glue layer. It imports the composable (model), o
 ```vue
 <!-- CartController.vue -->
 <script setup>
-const { items, discountCode, total, addItem } = useCart()
+const { items, discountCode, total, addItem, removeItem } = useCart()
 const { user } = useAuth()
 
 const handleCheckout = async () => {

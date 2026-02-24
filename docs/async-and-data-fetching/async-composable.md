@@ -67,4 +67,4 @@ const { data } = useAsyncWatch(() => fetchUser(userId.value), userId)
 
 ## Notes
 
-**Nuxt**: `useFetch` and `useAsyncData` in Nuxt are essentially this pattern with SSR state serialization added on top. They handle the server/client handoff automatically. If you roll your own `useAsync`, you lose that unless you also use `useNuxtData` to manually manage the payload.
+**Nuxt**: `useFetch` and `useAsyncData` in Nuxt are essentially this pattern with SSR state serialization added on top. They handle the server/client handoff automatically. If you roll your own `useAsync`, you lose that unless you use Nuxt's `useState` to manage the server/client state handoff manually.

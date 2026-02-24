@@ -16,7 +16,6 @@ Isolating async failures so one broken section of your UI doesn't take down the 
 <!-- ErrorBoundary.vue -->
 <script setup>
 const error = ref(null)
-const slots = useSlots()
 
 onErrorCaptured((e) => {
   error.value = e

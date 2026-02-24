@@ -49,10 +49,10 @@ export function useAsyncData(fetcher) {
 ```
 
 ```js
-// Simple usage - just await the data
-const data = await useAsyncData(fetcher)
+// In async setup — suspends until loaded, then destructure
+const { data } = await useAsyncData(fetcher)
 
-// Advanced usage - get full control
+// Without await — returns immediately, refs update reactively
 const { data, error, pending } = useAsyncData(fetcher)
 ```
 

@@ -179,16 +179,16 @@ console.log('1. Synchronous')
 
 setTimeout(() => console.log('4. setTimeout (macrotask)'), 0)
 
-nextTick(() => console.log('3. nextTick (microtask)'))
+nextTick(() => console.log('2. nextTick (microtask)'))
 
-Promise.resolve().then(() => console.log('2. Promise (microtask)'))
+Promise.resolve().then(() => console.log('3. Promise (microtask)'))
 ```
 
 Output:
 ```
 1. Synchronous
-2. Promise (microtask)
-3. nextTick (microtask)
+2. nextTick (microtask)
+3. Promise (microtask)
 4. setTimeout (macrotask)
 ```
 

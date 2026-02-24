@@ -63,8 +63,11 @@ export function createNotificationService(): NotificationService {
 
 ```ts
 // plugins/notifications/index.ts
-import type { App } from 'vue'
+import type { App, InjectionKey } from 'vue'
+import type { NotificationService } from './types'
 import NotificationContainer from './NotificationContainer.vue'
+
+export const NotificationKey: InjectionKey<NotificationService> = Symbol('NotificationService')
 
 export const NotificationPlugin = {
   install(app: App) {
@@ -85,12 +88,13 @@ export const NotificationPlugin = {
     // Register a directive for declarative notifications
     app.directive('notify-on-click', {
       mounted(el, binding) {
-        el.addEventListener('click', () => {
+        el._notifyHandler = () => {
           service.add({ message: binding.value, type: 'info' })
-        })
+        }
+        el.addEventListener('click', el._notifyHandler)
       },
       unmounted(el) {
-        // cleanup
+        el.removeEventListener('click', el._notifyHandler)
       }
     })
   }

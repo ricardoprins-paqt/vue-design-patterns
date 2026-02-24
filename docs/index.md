@@ -76,7 +76,7 @@ Going deeper into Vue's reactivity system for specialized use cases.
 - [Reactivity Debugging](./advanced-reactivity/reactivity-debugging.md)
 - [nextTick Timing](./advanced-reactivity/nexttick-timing.md)
 - [Transaction Pattern](./advanced-reactivity/transaction-pattern.md)
-- [Lazy Evaluation with Computed](./advanced-reactivity/lazy-evaluation-with-computed.md)
+- [Computed as Interceptor](./advanced-reactivity/computed-as-interceptor.md)
 
 ## Form Patterns
 

@@ -89,38 +89,23 @@ export function useStoredRef(defaultValue, key) {
 Cache expensive data on the server with a TTL to avoid refetching for every user:
 
 ```js
-// modules/ssrCache.js
-import LRU from 'lru-cache'
-import { defineNuxtModule } from '@nuxtjs/composition-api'
+// server/cache.js
+import { LRUCache } from 'lru-cache'
 
 const FIVE_MINUTES = 1000 * 60 * 5
 
-export default defineNuxtModule(function StoreServerCacheModule() {
-  const storeCache = new LRU({ maxAge: FIVE_MINUTES })
-  
-  this.nuxt.hook('vue-renderer:ssr:prepareContext', (ssrContext) => {
-    ssrContext.$serverCache = storeCache
-  })
-})
+export const serverCache = new LRUCache({ max: 1000, ttl: FIVE_MINUTES })
 ```
 
 ```js
 // composables/useCachedSsrRef.js
-import { computed, ssrRef, useContext } from '@nuxtjs/composition-api'
+import { ref, computed } from 'vue'
+import { serverCache } from '@/server/cache'
 
-const CACHE_TTL = 3600 * 1000 * 5 // 5 minutes
-
-export function useCachedSsrRef(defaultValue, key, ttl = CACHE_TTL) {
-  const innerRef = ssrRef(defaultValue, key)
+export function useCachedSsrRef(defaultValue, key) {
+  const innerRef = ref(defaultValue)
   
-  if (!process.server) {
-    return innerRef // Client-side: regular ref
-  }
-  
-  const ctx = useContext()
-  const serverCache = ctx.ssrContext.$serverCache
-  
-  if (!serverCache) {
+  if (!import.meta.env.SSR) {
     return innerRef
   }
   
@@ -133,7 +118,7 @@ export function useCachedSsrRef(defaultValue, key, ttl = CACHE_TTL) {
   const wrapper = computed({
     get: () => innerRef.value,
     set(newVal) {
-      serverCache.set(key, newVal, ttl)
+      serverCache.set(key, newVal)
       innerRef.value = newVal
     }
   })
@@ -144,12 +129,12 @@ export function useCachedSsrRef(defaultValue, key, ttl = CACHE_TTL) {
 
 ```js
 // Usage in a component
-const categories = useCachedSsrRef([], 'store-categories', 3600 * 1000 * 5)
+const categories = useCachedSsrRef([], 'store-categories')
 
 // First request fetches and caches
 categories.value = await fetchCategories()
 
-// Next requests within 5 minutes use cached value
+// Next requests within TTL use cached value
 ```
 
 ## Notes

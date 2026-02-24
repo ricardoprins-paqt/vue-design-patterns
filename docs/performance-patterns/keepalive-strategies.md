@@ -51,6 +51,7 @@ Drive the include list from route meta so caching behavior is declared at the ro
 
 ```js
 // Drive the include list from route meta
+const router = useRouter()
 const cachedRoutes = computed(() =>
   router.getRoutes()
     .filter(r => r.meta.keepAlive)

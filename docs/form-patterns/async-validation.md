@@ -23,22 +23,23 @@ function useAsyncValidation(value, asyncValidator, delay = 500) {
 
   let debounceTimer = null
 
-  watch(value, async () => {
+  watch(value, () => {
+    clearTimeout(debounceTimer)
+
     if (!value.value) {
       error.value = null
       valid.value = null
       return
     }
 
-    clearTimeout(debounceTimer)
+    const controller = new AbortController()
+    onWatcherCleanup(() => {
+      clearTimeout(debounceTimer)
+      controller.abort()
+      validating.value = false
+    })
 
     debounceTimer = setTimeout(async () => {
-      const controller = new AbortController()
-      onWatcherCleanup(() => {
-        controller.abort()
-        validating.value = false
-      })
-
       validating.value = true
       error.value = null
 
@@ -59,6 +60,8 @@ function useAsyncValidation(value, asyncValidator, delay = 500) {
       }
     }, delay)
   })
+
+  return { error, validating, valid }
 }
 ```
 

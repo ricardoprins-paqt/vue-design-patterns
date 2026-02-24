@@ -50,12 +50,14 @@ export const vClickOutside: Directive = {
   },
 
   updated(el: ClickOutsideElement, binding: DirectiveBinding<() => void>) {
-    // Update the handler if the callback changes
+    // Remove the old listener before replacing the handler
+    document.removeEventListener('click', el._clickOutsideHandler!)
     el._clickOutsideHandler = (event: MouseEvent) => {
       if (!el.contains(event.target as Node)) {
         binding.value()
       }
     }
+    document.addEventListener('click', el._clickOutsideHandler)
   },
 
   unmounted(el: ClickOutsideElement) {

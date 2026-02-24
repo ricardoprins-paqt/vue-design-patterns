@@ -25,6 +25,8 @@ function applyDiscount(total, discountCode) {
 }
 
 // ---- Thin reactive layer on top ----
+import { ref, computed } from 'vue'
+
 export function useCart() {
   const items = ref([])
   const discountCode = ref('')

@@ -132,27 +132,25 @@ const { count = 0, message = 'hello' } = defineProps<{
   message?: string
 }>()
 
-// Automatically reactive!
+// Automatically reactive in template and watch!
 watch(count, () => {
   console.log('Changed:', count)
 })
 
-// Pass to composables (wrap in getter)
+// Pass to composables (wrap in getter — the compiler
+// doesn't transform inside composable function bodies)
 const { data } = useFetch(() => `/api/users/${count}`)
 </script>
 ```
 
 **Important Vue 3.5+ Caveat:**
-Destructured props must be wrapped in getters when passed to watchers or composables:
+The compiler auto-wraps destructured props for `watch` in `<script setup>`, but composables receive the raw value — they run outside the compiler's scope:
 
 ```js
-// ❌ Compile error
+// ✅ Works — compiler wraps it for you in <script setup>
 watch(count, () => { /* ... */ })
 
-// ✅ Wrap in getter
-watch(() => count, () => { /* ... */ })
-
-// ✅ Or for composables
+// ✅ Composables need an explicit getter
 useFetch(() => `/api/items/${count}`)
 ```
 
@@ -195,15 +193,14 @@ const { count = 0 } = defineProps<{ count?: number }>()
 
 ```vue
 <script setup>
-import { toRefs } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
-// Pre-3.5: Convert route params to reactive refs
-const { id } = toRefs(route.params)
-
-// Now id is reactive
+// Pre-3.5: Use computed — toRefs won't survive navigation
+// because route.params is replaced (not mutated) on route change
+const id = computed(() => route.params.id)
 const { user } = useUser(id)
 
 // Vue 3.5+: Just use a getter

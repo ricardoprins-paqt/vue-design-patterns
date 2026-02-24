@@ -51,4 +51,36 @@ The user sees the like happen instantly. If the API call fails, the like visuall
 
 ## Notes
 
-**Tricky edge case**: if the user triggers multiple optimistic updates before any of them resolve, naive snapshots can roll back to intermediate states rather than the true original. For complex cases you might need a queue or version counter, but for most UI interactions the simple snapshot is sufficient.
+**Tricky edge case**: if the user triggers multiple optimistic updates before any of them resolve, naive snapshots can roll back to intermediate states rather than the true original.
+
+Consider: user clicks like, then immediately clicks again before the first request resolves. The second call snapshots the *optimistic* state, not the original. When the first request fails and rolls back, the second snapshot is now stale.
+
+A version counter prevents stale rollbacks:
+
+```js
+export function useOptimistic(initialValue, updateFn) {
+  const state = ref(initialValue)
+  let version = 0
+
+  async function optimisticUpdate(newValue) {
+    const previousValue = state.value
+    const thisVersion = ++version
+
+    state.value = newValue
+
+    try {
+      await updateFn(newValue)
+    } catch (e) {
+      // Only roll back if no newer update has happened
+      if (version === thisVersion) {
+        state.value = previousValue
+      }
+      throw e
+    }
+  }
+
+  return { state, optimisticUpdate }
+}
+```
+
+For most single-action UI (like buttons, toggles), the simple snapshot version is fine. Reach for the version counter when the user can realistically trigger overlapping updates.

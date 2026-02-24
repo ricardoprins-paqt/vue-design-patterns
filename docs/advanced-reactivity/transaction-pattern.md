@@ -199,6 +199,8 @@ export function useDragDropList(initialItems) {
   const items = ref(initialItems)
   const reorderQueue = ref([])
   
+  let processingScheduled = false
+  
   function onDragEnd(fromIndex, toIndex) {
     // Move the item
     const [item] = items.value.splice(fromIndex, 1)
@@ -208,18 +210,22 @@ export function useDragDropList(initialItems) {
     reorderQueue.value.push({ from: fromIndex, to: toIndex })
     
     // Schedule processing
-    nextTick(() => {
-      // All drag operations have settled
-      const finalOrder = items.value.map((item, idx) => ({
-        id: item.id,
-        order: idx
-      }))
-      
-      // Sync final order to server
-      console.log('Final order:', finalOrder)
-      
-      reorderQueue.value = []
-    })
+    if (!processingScheduled) {
+      processingScheduled = true
+      nextTick(() => {
+        // All drag operations have settled
+        const finalOrder = items.value.map((item, idx) => ({
+          id: item.id,
+          order: idx
+        }))
+        
+        // Sync final order to server
+        console.log('Final order:', finalOrder)
+        
+        reorderQueue.value = []
+        processingScheduled = false
+      })
+    }
   }
   
   return {
@@ -264,7 +270,7 @@ If transactions can pile up (user keeps clicking rapidly), consider:
 Instead of queuing operations, use a draft state that's finalized in `nextTick`:
 
 ```js
-const draft = { ...fields.value }
+const draft = [...fields.value]
 // Mutate draft
 draft.splice(0, 1)
 draft.push(newField)

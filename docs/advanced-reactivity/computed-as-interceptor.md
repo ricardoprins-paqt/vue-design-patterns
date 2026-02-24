@@ -1,4 +1,4 @@
-# Lazy Evaluation with Computed
+# Computed as Interceptor
 
 Using writable `computed` properties for synchronous side effects instead of `watch`. When you need side effects to execute **immediately** and **synchronously** during value changes, a computed get/set is more reliable than watch's async callback timing.
 
@@ -32,19 +32,16 @@ console.log('Changed')
 // Cached  ← runs AFTER the synchronous code
 ```
 
-In SSR, this is a problem:
+In SSR, this is a problem — the response is sent after the synchronous execution completes, so a `watch` callback runs too late:
 
 ```js
-// SSR context
-const categories = ssrRef([])
+const data = ref([])
 
-watch(categories, (newVal) => {
-  serverCache.set('categories', newVal) // ❌ Runs too late
+watch(data, (newVal) => {
+  serverCache.set('data', newVal) // ❌ Runs too late — response already sent
 })
 
-categories.value = await fetchCategories()
-// Response is sent before watch callback runs
-// Cache is never written!
+data.value = await fetchData()
 ```
 
 ## Solution
@@ -77,38 +74,31 @@ console.log('Changed')
 ### SSR Cache Example
 
 ```js
-import { ref, computed, useContext } from '@nuxtjs/composition-api'
+import { ref, computed } from 'vue'
 
-export function useCachedSsrRef(defaultValue, key, ttl = 3600000) {
+export function useCachedSsrRef(defaultValue, key, serverCache) {
   const innerRef = ref(defaultValue)
-  
-  if (!process.server) {
-    return innerRef // Client doesn't need caching
-  }
-  
-  const ctx = useContext()
-  const serverCache = ctx.ssrContext.$serverCache
-  
-  if (!serverCache) {
+
+  if (!import.meta.env.SSR) {
     return innerRef
   }
-  
+
   // Initialize from cache if available
   if (serverCache.has(key)) {
     innerRef.value = serverCache.get(key)
   }
-  
+
   // Wrap with computed to intercept writes
   const wrapper = computed({
     get: () => innerRef.value,
-    
+
     set: (newVal) => {
       // ✅ Write to cache synchronously BEFORE responding
-      serverCache.set(key, newVal, ttl)
+      serverCache.set(key, newVal)
       innerRef.value = newVal
     }
   })
-  
+
   return wrapper
 }
 ```
@@ -116,15 +106,10 @@ export function useCachedSsrRef(defaultValue, key, ttl = 3600000) {
 Usage:
 
 ```js
-const categories = useCachedSsrRef([], 'store-categories', 5 * 60 * 1000)
+const categories = useCachedSsrRef([], 'store-categories', serverCache)
 
-// First request: fetch and cache
 categories.value = await fetchCategories()
-// Cache write happens synchronously
-// Response includes cached data
-
-// Next requests within TTL: served from cache
-// No API call needed
+// Cache write happens synchronously — before the response is sent
 ```
 
 ### Validation Example
@@ -207,9 +192,6 @@ searchQuery.value = 'Vue patterns'
 
 **SSR Specific:**
 In SSR, the response is sent after the synchronous execution completes. If you need to write to a cache before responding, `watch` is too late — use computed get/set.
-
-**Nuxt 3:**
-With Nuxt 3's improved timing, `watch` might work better. This pattern is primarily for Nuxt 2 + Composition API where timing is less predictable.
 
 **Alternative Pattern:**
 You could also use an explicit setter function:

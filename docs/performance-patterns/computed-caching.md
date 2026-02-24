@@ -33,7 +33,7 @@ Rather than one massive computed that does everything, chain smaller ones — Vu
 // If sort changes, Vue recomputes sorted from cached filtered
 // Only if rawData changes does everything recompute
 const filtered = computed(() => rawData.value.filter(applyFilters))
-const sorted = computed(() => filtered.value.sort(applySort))
+const sorted = computed(() => [...filtered.value].sort(applySort))
 const paginated = computed(() => sorted.value.slice(page.value * size, ...))
 ```
 
