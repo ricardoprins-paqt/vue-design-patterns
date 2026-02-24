@@ -6,7 +6,7 @@ layout: doc
 
 A collection of Vue 3 patterns organized by category, from component design to advanced reactivity.
 
-## Category 1: Component API Design
+## Component API Design
 
 Patterns for designing clean, flexible component APIs.
 
@@ -17,7 +17,7 @@ Patterns for designing clean, flexible component APIs.
 - [Attribute Routing](./component-api-design/attribute-routing.md)
 - [Reactive Props Destructuring](./component-api-design/reactive-props-destructuring.md)
 
-## Category 2: State Sharing
+## State Sharing
 
 Patterns for sharing state between components without (or beyond) Pinia.
 
@@ -26,7 +26,7 @@ Patterns for sharing state between components without (or beyond) Pinia.
 - [Typed Provide Inject](./state-sharing/typed-provide-inject.md)
 - [Composable Context Pattern](./state-sharing/composable-context-pattern.md)
 
-## Category 3: Architectural Patterns
+## Architectural Patterns
 
 Structuring the layers of your application — separating business logic, orchestration, and presentation.
 
@@ -35,7 +35,7 @@ Structuring the layers of your application — separating business logic, orches
 - [Thin Composables](./architectural-patterns/thin-composables.md)
 - [The MVC Triad](./architectural-patterns/the-mvc-triad.md)
 
-## Category 4: Component Splitting
+## Component Splitting
 
 Knowing when and how to break components apart — and when not to.
 
@@ -45,7 +45,7 @@ Knowing when and how to break components apart — and when not to.
 - [Strategy Pattern](./component-splitting/strategy-pattern.md)
 - [When Not to Split](./component-splitting/when-not-to-split.md)
 
-## Category 5: Composable Design
+## Composable Design
 
 Patterns for writing composables that are flexible, testable, and composable with each other.
 
@@ -56,7 +56,7 @@ Patterns for writing composables that are flexible, testable, and composable wit
 - [Composing Composables](./composable-design/composing-composables.md)
 - [MaybeRefOrGetter](./composable-design/maybereforgetter.md)
 
-## Category 6: Async and Data Fetching
+## Async and Data Fetching
 
 Handling async operations, race conditions, and error states.
 
@@ -65,7 +65,7 @@ Handling async operations, race conditions, and error states.
 - [Optimistic UI](./async-and-data-fetching/optimistic-ui.md)
 - [Error Boundaries](./async-and-data-fetching/error-boundaries.md)
 
-## Category 7: Advanced Reactivity
+## Advanced Reactivity
 
 Going deeper into Vue's reactivity system for specialized use cases.
 
@@ -78,7 +78,7 @@ Going deeper into Vue's reactivity system for specialized use cases.
 - [Transaction Pattern](./advanced-reactivity/transaction-pattern.md)
 - [Lazy Evaluation with Computed](./advanced-reactivity/lazy-evaluation-with-computed.md)
 
-## Category 8: Form Patterns
+## Form Patterns
 
 Patterns for building scalable, maintainable form systems.
 
@@ -87,7 +87,7 @@ Patterns for building scalable, maintainable form systems.
 - [Async Validation](./form-patterns/async-validation.md)
 - [Schema-Driven Forms](./form-patterns/schema-driven-forms.md)
 
-## Category 9: Performance Patterns
+## Performance Patterns
 
 Optimizing rendering, reactivity tracking, and bundle size.
 
@@ -99,7 +99,7 @@ Optimizing rendering, reactivity tracking, and bundle size.
 - [Computed Caching](./performance-patterns/computed-caching.md)
 - [Cached Ref Pattern](./performance-patterns/cached-ref-pattern.md)
 
-## Category 10: Plugin & Library Patterns
+## Plugin & Library Patterns
 
 Building reusable plugins, directives, and app-wide systems.
 
