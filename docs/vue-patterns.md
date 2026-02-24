@@ -1,7 +1,3 @@
----
-layout: doc
----
-
 # Vue Patterns
 
 A collection of Vue 3 patterns organized by category, from component design to advanced reactivity.
