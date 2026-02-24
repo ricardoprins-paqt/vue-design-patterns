@@ -1,6 +1,6 @@
 # The MVC Triad
 
-The three roles — [[Humble Components]], [[Thin Composables]], and [[Controller Components]] — map loosely to the View, Model, and Controller of MVC, adapted to Vue's way of thinking.
+The three roles — [Humble Components](humble-components.md), [Thin Composables](thin-composables.md), and [Controller Components](controller-components.md) — map loosely to the View, Model, and Controller of MVC, adapted to Vue's way of thinking.
 
 ## The Problem
 
@@ -42,9 +42,9 @@ Thin Composable          Controller Component       Humble Components
 ```
 
 The triad gives you clear places for each concern:
-- **Logic** lives in [[Thin Composables]]
-- **Wiring** lives in [[Controller Components]]
-- **Presentation** lives in [[Humble Components]]
+- **Logic** lives in [Thin Composables](thin-composables.md)
+- **Wiring** lives in [Controller Components](controller-components.md)
+- **Presentation** lives in [Humble Components](humble-components.md)
 
 ## Why "Not-Quite-MVC"
 

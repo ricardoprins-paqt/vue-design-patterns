@@ -1,6 +1,6 @@
 # The Modal/Notification System Pattern
 
-Combines `Teleport`, the [[Singleton Composable|singleton store pattern]], [[Controller Components|controller components]], and [[Custom Directives|custom directives]] into a complete system. Almost every app needs this and most implementations are messier than they need to be.
+Combines `Teleport`, the [singleton store pattern](../state-sharing/singleton-composable.md), [controller components](../architectural-patterns/controller-components.md), and [custom directives](custom-directives.md) into a complete system. Almost every app needs this and most implementations are messier than they need to be.
 
 ## The Problem
 

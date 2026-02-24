@@ -53,7 +53,7 @@ transition('FETCH')    // ignored — no FETCH event defined for success state
 
 ## Composed Example
 
-A search feature combining [[Custom Ref|debounced ref]], state machine, and [[Race Condition Handling]]:
+A search feature combining [debounced ref](custom-ref.md), state machine, and [Race Condition Handling](../async-and-data-fetching/race-condition-handling.md):
 
 ```js
 function useSearch(searchFn) {

@@ -6,7 +6,7 @@ A Humble Component does one thing: render UI and emit user intent. It has no bus
 
 - For any presentation-level component
 - When you want components that are trivially testable and completely reusable
-- As the "View" layer in [[The MVC Triad]]
+- As the "View" layer in [The MVC Triad](the-mvc-triad.md)
 
 ## Example
 
@@ -30,4 +30,4 @@ The key idea is **props down, events up** taken to its logical extreme. The comp
 
 The benefit is that humble components are trivially testable and completely reusable because they have no side effects or dependencies. You can render them with any props and they always behave predictably.
 
-See also: [[Controller Components]] and [[Thin Composables]] for the other layers in the triad.
+See also: [Controller Components](controller-components.md) and [Thin Composables](thin-composables.md) for the other layers in the triad.

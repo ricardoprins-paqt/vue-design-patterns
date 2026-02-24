@@ -45,4 +45,4 @@ const attrs = useAttrs()               // grab attrs manually
 
 Without `inheritAttrs: false`, the `class="big"` and the blur listener would land on the wrapper `<div>`. With this pattern everything reaches the actual `<input>`.
 
-These four component API design patterns build on each other in real component libraries. A library might use the [[Polymorphic Components|as prop]] for element flexibility, transparent wrapper for input components, [[Compound Components|compound components]] for complex widgets like dropdowns, and [[Renderless Components|renderless components]] for behavior-only primitives.
+These four component API design patterns build on each other in real component libraries. A library might use the [as prop](polymorphic-components.md) for element flexibility, transparent wrapper for input components, [compound components](compound-components.md) for complex widgets like dropdowns, and [renderless components](renderless-components.md) for behavior-only primitives.

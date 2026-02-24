@@ -124,4 +124,4 @@ this.$notify('Saved!', 'success')
 
 ## Notes
 
-The plugin is self-contained, typed end to end, and works with any usage style. The key architectural decision is that the state (`notifications`) lives at module level as a [[Singleton Composable|singleton]] — this means it survives across component trees and is accessible even outside of components.
+The plugin is self-contained, typed end to end, and works with any usage style. The key architectural decision is that the state (`notifications`) lives at module level as a [singleton](../state-sharing/singleton-composable.md) — this means it survives across component trees and is accessible even outside of components.

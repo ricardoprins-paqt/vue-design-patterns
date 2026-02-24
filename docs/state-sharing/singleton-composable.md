@@ -34,4 +34,4 @@ Every component that calls `useAuth()` shares the exact same `user` ref. Change 
 
 - The state is declared outside the function but the methods are inside — this means methods get recreated per call which is a slight waste. For performance you can move them outside too.
 - Returning `readonly(user)` prevents consumers from mutating the user directly — they have to go through `login` and `logout`. This is the same principle as Pinia's store pattern, just without the library.
-- **Limitation**: this state lives for the entire lifetime of the app — there's no cleanup. For stores that need proper lifecycle management, see [[Mini Store with effectScope]].
+- **Limitation**: this state lives for the entire lifetime of the app — there's no cleanup. For stores that need proper lifecycle management, see [Mini Store with effectScope](mini-store-with-effectscope.md).

@@ -6,7 +6,7 @@ A Thin Composable contains your business logic as pure JavaScript functions, wit
 
 - When business logic is complex enough to warrant isolated testing
 - When you want logic that could potentially travel to another framework
-- As the "Model" layer in [[The MVC Triad]]
+- As the "Model" layer in [The MVC Triad](the-mvc-triad.md)
 
 ## Example
 
@@ -46,4 +46,4 @@ export function useCart() {
 
 This separation also means if you ever move to a different framework, your business logic travels with you unchanged.
 
-See also: [[Humble Components]], [[Controller Components]], and [[The MVC Triad]].
+See also: [Humble Components](humble-components.md), [Controller Components](controller-components.md), and [The MVC Triad](the-mvc-triad.md).

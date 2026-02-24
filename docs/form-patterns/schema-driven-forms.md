@@ -113,7 +113,7 @@ function updateField(name, value) {
 </template>
 ```
 
-The [[Strategy Pattern]] does the heavy lifting — `fieldComponents` is the lookup that maps field type strings to the right component. Adding a new field type is one line in the lookup object.
+The [Strategy Pattern](../component-splitting/strategy-pattern.md) does the heavy lifting — `fieldComponents` is the lookup that maps field type strings to the right component. Adding a new field type is one line in the lookup object.
 
 ### Conditional Fields
 
@@ -154,8 +154,8 @@ The filtering logic lives in a computed that Vue caches, and since `props.modelV
 The schema can come from anywhere — hardcoded, from an API, from user configuration. The form doesn't care. This is how most headless CMS integrations and admin panel generators work.
 
 All form patterns layer naturally. A real-world form might use:
-- [[Form Context]] to own state and validation at any depth
-- [[V-Model Transformer]] for format differences at the field level
-- [[Async Validation]] for server-side checks
+- [Form Context](form-context.md) to own state and validation at any depth
+- [V-Model Transformer](v-model-transformer.md) for format differences at the field level
+- [Async Validation](async-validation.md) for server-side checks
 - Schema-driven rendering when the structure is dynamic
-- [[Reactive State Machine]] to manage form lifecycle (idle, validating, submitting, success, error)
+- [Reactive State Machine](../advanced-reactivity/reactive-state-machine.md) to manage form lifecycle (idle, validating, submitting, success, error)

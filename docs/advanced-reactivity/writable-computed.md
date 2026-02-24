@@ -6,7 +6,7 @@ Most `computed` properties are read-only derived state. But `computed` accepts a
 
 - Converting between formats (celsius/fahrenheit, cents/dollars)
 - Creating a local transformation layer for a prop without violating "don't mutate props"
-- As the basis for [[V-Model Transformer]]
+- As the basis for [V-Model Transformer](../form-patterns/v-model-transformer.md)
 
 ## Example
 
@@ -44,4 +44,4 @@ const date = computed({
 
 This is exactly how `defineModel` works internally — it's a computed with a getter that reads the prop and a setter that emits the update event. If you ever need a transformed version of a `v-model` value, writable computed is the right tool.
 
-See also: [[V-Model Transformer]] for the form-specific application of this pattern.
+See also: [V-Model Transformer](../form-patterns/v-model-transformer.md) for the form-specific application of this pattern.

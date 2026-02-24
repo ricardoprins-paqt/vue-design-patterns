@@ -49,6 +49,6 @@ const expensiveResult = computed(() => process(data.value), {
 - `onTrack` fires when a dependency is first accessed — when Vue starts watching it
 - `onTrigger` fires when a dependency changes and causes a re-run
 
-**Most common surprise**: a watcher or computed is tracking a deeply nested property you didn't realize it was accessing, causing it to re-run on unrelated changes. Seeing it in the debug event immediately tells you where to add a `toRaw` (see [[Reactivity Boundary Pattern]]) or restructure the access.
+**Most common surprise**: a watcher or computed is tracking a deeply nested property you didn't realize it was accessing, causing it to re-run on unrelated changes. Seeing it in the debug event immediately tells you where to add a `toRaw` (see [Reactivity Boundary Pattern](../composable-design/reactivity-boundary-pattern.md)) or restructure the access.
 
 These hooks are **dev-only** — they're stripped out in production builds.

@@ -13,7 +13,7 @@ Some validation can't be synchronous — checking if a username is taken, valida
 
 ### The Composable
 
-Combines debounced watching with the abort/cleanup pattern from [[Race Condition Handling]]:
+Combines debounced watching with the abort/cleanup pattern from [Race Condition Handling](../async-and-data-fetching/race-condition-handling.md):
 
 ```js
 function useAsyncValidation(value, asyncValidator, delay = 500) {

@@ -1,6 +1,6 @@
 # Composable Context Pattern
 
-The most elegant state sharing pattern — it combines the [[Singleton Composable]] and [[Typed Provide Inject]] into a single composable that can behave as both a provider and a consumer depending on where it's called.
+The most elegant state sharing pattern — it combines the [Singleton Composable](singleton-composable.md) and [Typed Provide Inject](typed-provide-inject.md) into a single composable that can behave as both a provider and a consumer depending on where it's called.
 
 The idea is that a feature's state is provided at a high level and consumed anywhere below — but the `provide` and `inject` are hidden inside the same composable so consumers don't need to know about injection keys at all.
 
@@ -69,7 +69,7 @@ const { errors, setError } = useForm()
 The `Symbol` key is completely internal — consumers just call `useForm()`, they never deal with injection keys directly. This is exactly how Vue Router exposes `useRouter()` and `useRoute()` — they're injecting from context provided by the router plugin, you just never see the `Symbol`.
 
 The four state sharing patterns cover a spectrum from simple to structured:
-- [[Singleton Composable]] for small apps or simple shared state
-- [[Typed Provide Inject]] for scoped context within a component tree
-- [[Composable Context Pattern]] for feature-level state flowing through a subtree
-- [[Mini Store with effectScope]] for stores that need proper lifecycle management
+- [Singleton Composable](singleton-composable.md) for small apps or simple shared state
+- [Typed Provide Inject](typed-provide-inject.md) for scoped context within a component tree
+- [Composable Context Pattern](composable-context-pattern.md) for feature-level state flowing through a subtree
+- [Mini Store with effectScope](mini-store-with-effectscope.md) for stores that need proper lifecycle management

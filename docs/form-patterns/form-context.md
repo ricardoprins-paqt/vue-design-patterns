@@ -137,4 +137,4 @@ const { value, error, isTouched, onBlur } = useField('email')
 
 `EmailField` has zero props. It knows its own name and pulls everything it needs from the form context. You can nest it as deep as you want and it just works. This is how libraries like VeeValidate and FormKit work internally.
 
-This is a direct application of the [[Composable Context Pattern]].
+This is a direct application of the [Composable Context Pattern](../state-sharing/composable-context-pattern.md).

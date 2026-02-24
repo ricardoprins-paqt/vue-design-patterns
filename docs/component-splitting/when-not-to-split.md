@@ -16,4 +16,4 @@ Splitting has a cost. Every extracted component adds indirection — you now hav
 
 ## Notes
 
-This is the counterbalance to patterns like [[Hidden Components]] and [[Combine Branches]]. The goal is clarity, not extraction for its own sake. Three similar lines of code is better than a premature abstraction.
+This is the counterbalance to patterns like [Hidden Components](hidden-components.md) and [Combine Branches](combine-branches.md). The goal is clarity, not extraction for its own sake. Three similar lines of code is better than a premature abstraction.

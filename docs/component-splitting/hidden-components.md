@@ -55,4 +55,4 @@ The profile even has its own local state (`isFollowing`). Extracting them gives 
 
 **Important nuance**: don't extract if the section is entirely driven by dynamic conditions from the parent. If the markup only exists when some parent-controlled flag is true and it has no identity of its own, it might not really be a separate component — just a template fragment.
 
-See also: [[When Not to Split]] for the other side of this coin.
+See also: [When Not to Split](when-not-to-split.md) for the other side of this coin.

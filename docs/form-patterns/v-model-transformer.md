@@ -1,6 +1,6 @@
 # V-Model Transformer
 
-Using [[Writable Computed]] to transform a value between two formats — the format the parent/API uses and the format the input needs. Avoids having two separate pieces of state and keeping them in sync manually.
+Using [Writable Computed](../advanced-reactivity/writable-computed.md) to transform a value between two formats — the format the parent/API uses and the format the input needs. Avoids having two separate pieces of state and keeping them in sync manually.
 
 ## When to Use
 
@@ -40,4 +40,4 @@ const tags = computed({
 
 ## Notes
 
-The transformation is colocated and obvious. This is a core building block of [[Form Context]] and comes up constantly in form-heavy applications.
+The transformation is colocated and obvious. This is a core building block of [Form Context](form-context.md) and comes up constantly in form-heavy applications.

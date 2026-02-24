@@ -44,4 +44,4 @@ Adding a new payment method is now just adding one line to the lookup object. Yo
 
 The lookup object is also easy to drive from outside — you could even receive it as a prop, making the component fully open for extension without modification.
 
-This pattern is also used in [[Schema-Driven Forms]] where `fieldComponents` maps field type strings to the right component.
+This pattern is also used in [Schema-Driven Forms](../form-patterns/schema-driven-forms.md) where `fieldComponents` maps field type strings to the right component.

@@ -1,11 +1,11 @@
 # Controller Components
 
-The Controller Component is the glue layer. It imports the composable (model), orchestrates the logic, and passes results down to [[Humble Components]] (views). It contains no UI of its own — just wiring.
+The Controller Component is the glue layer. It imports the composable (model), orchestrates the logic, and passes results down to [Humble Components](humble-components.md) (views). It contains no UI of its own — just wiring.
 
 ## When to Use
 
 - When you need to connect business logic (composables) with presentation (humble components)
-- As the "Controller" layer in [[The MVC Triad]]
+- As the "Controller" layer in [The MVC Triad](the-mvc-triad.md)
 - When a page or feature needs to coordinate multiple composables and components
 
 ## Example
@@ -60,4 +60,4 @@ That heading and subtitle are presentation — they belong in a humble component
 
 **Rule of thumb**: if a designer asked you to change it, it shouldn't be in the controller. A wrapper div is invisible to designers. A heading with copy and styling is very much their concern.
 
-See also: [[Humble Components]], [[Thin Composables]], and [[The MVC Triad]].
+See also: [Humble Components](humble-components.md), [Thin Composables](thin-composables.md), and [The MVC Triad](the-mvc-triad.md).

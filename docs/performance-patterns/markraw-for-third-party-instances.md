@@ -52,4 +52,4 @@ onBeforeUnmount(() => {
 
 `markRaw` on the instance means even if you put it inside a reactive object or ref, Vue will never proxy it. Combined with `shallowRef` for the container, the instance is completely outside Vue's reactivity system while still being stored conveniently in component state.
 
-See also: [[Reactivity Boundary Pattern]] for the broader concept of controlling where reactivity stops.
+See also: [Reactivity Boundary Pattern](../composable-design/reactivity-boundary-pattern.md) for the broader concept of controlling where reactivity stops.

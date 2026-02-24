@@ -71,4 +71,4 @@ For even more control, nest `Suspense` boundaries — critical content loads fir
 
 ## Notes
 
-See also: [[Error Boundaries]] for handling failures in async components.
+See also: [Error Boundaries](../async-and-data-fetching/error-boundaries.md) for handling failures in async components.
