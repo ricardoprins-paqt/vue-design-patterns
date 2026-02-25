@@ -13,6 +13,7 @@ Patterns for designing clean, flexible component APIs.
 - [Renderless Components](./component-api-design/renderless-components.md)
 - [Compound Components](./component-api-design/compound-components.md)
 - [Polymorphic Components](./component-api-design/polymorphic-components.md)
+- [Adapter Pattern](./component-api-design/adapter-pattern.md)
 - [Transparent Wrapper Components](./component-api-design/transparent-wrapper-components.md)
 - [Attribute Routing](./component-api-design/attribute-routing.md)
 - [Reactive Props Destructuring](./component-api-design/reactive-props-destructuring.md)

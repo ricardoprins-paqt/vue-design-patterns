@@ -18,6 +18,7 @@ export default defineConfig({
           { text: 'Renderless Components', link: '/component-api-design/renderless-components' },
           { text: 'Compound Components', link: '/component-api-design/compound-components' },
           { text: 'Polymorphic Components', link: '/component-api-design/polymorphic-components' },
+          { text: 'Adapter Pattern', link: '/component-api-design/adapter-pattern' },
           { text: 'Transparent Wrapper Components', link: '/component-api-design/transparent-wrapper-components' },
           { text: 'Attribute Routing', link: '/component-api-design/attribute-routing' },
           { text: 'Reactive Props Destructuring', link: '/component-api-design/reactive-props-destructuring' },
