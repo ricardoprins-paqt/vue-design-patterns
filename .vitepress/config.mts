@@ -87,7 +87,7 @@ export default defineConfig({
           { text: 'Reactivity Debugging', link: '/advanced-reactivity/reactivity-debugging' },
           { text: 'nextTick Timing', link: '/advanced-reactivity/nexttick-timing' },
           { text: 'Transaction Pattern', link: '/advanced-reactivity/transaction-pattern' },
-          { text: 'Lazy Evaluation with Computed', link: '/advanced-reactivity/lazy-evaluation-with-computed' },
+          { text: 'Computed as Interceptor', link: '/advanced-reactivity/computed-as-interceptor' },
         ]
       },
       {
