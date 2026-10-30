@@ -8,13 +8,21 @@ Updating the local state immediately when the user does something, then syncing 
 - Any user action where the expected server response is predictable
 - When perceived performance matters more than absolute correctness
 
+## When Not to Use
+
+- When the server decides the result (prices, generated IDs, validation that often fails): you would show a value and then correct it. Show a pending state instead.
+- For irreversible or high-stakes actions (payments, sending a message, deleting data): the user must not believe something happened before it did.
+- When the request usually takes less than ~100 ms, a plain pending state is simpler and feels just as fast.
+
 ## Example
 
-```js
-export function useOptimistic(initialValue, updateFn) {
-  const state = ref(initialValue)
+```ts
+import { ref, type Ref } from 'vue'
 
-  async function optimisticUpdate(newValue) {
+export function useOptimistic<T>(initialValue: T, updateFn: (value: T) => Promise<unknown>) {
+  const state = ref(initialValue) as Ref<T>
+
+  async function optimisticUpdate(newValue: T): Promise<void> {
     const previousValue = state.value  // snapshot before
 
     state.value = newValue             // apply immediately — optimistic
@@ -31,7 +39,7 @@ export function useOptimistic(initialValue, updateFn) {
 }
 ```
 
-```js
+```ts
 // Usage — liking a post
 const { state: post, optimisticUpdate } = useOptimistic(
   props.post,
@@ -39,15 +47,21 @@ const { state: post, optimisticUpdate } = useOptimistic(
 )
 
 async function toggleLike() {
-  await optimisticUpdate({
-    ...post.value,
-    liked: !post.value.liked,
-    likes: post.value.likes + (post.value.liked ? -1 : 1)
-  })
+  try {
+    await optimisticUpdate({
+      ...post.value,
+      liked: !post.value.liked,
+      likes: post.value.likes + (post.value.liked ? -1 : 1)
+    })
+  } catch {
+    toast.error('Could not save your like. Please try again.')
+  }
 }
 ```
 
-The user sees the like happen instantly. If the API call fails, the like visually un-happens. The snapshot pattern — saving `previousValue` before the update — is what makes rollback trivial.
+The user sees the like happen instantly. If the API call fails, the like visually un-happens, and the user is told why. The snapshot pattern — saving `previousValue` before the update — is what makes rollback trivial.
+
+`useOptimistic(props.post, ...)` copies the prop once. If the parent later passes a different post, `post` does not follow it. Re-create the state when the prop changes (for example with a `watch` on `() => props.post` that resets `state`), or key the component by post id.
 
 ## Notes
 
@@ -55,25 +69,28 @@ The user sees the like happen instantly. If the API call fails, the like visuall
 
 Consider: user clicks like, then immediately clicks again before the first request resolves. The second call snapshots the *optimistic* state, not the original. When the first request fails and rolls back, the second snapshot is now stale.
 
-A version counter prevents stale rollbacks:
+A version counter ("only roll back if no newer update happened") fixes part of this, but not all: if both updates fail, the second one rolls back to the first one's optimistic value, which the server never saved. Keep the last value the server *accepted*, and only let the latest update roll back to it:
 
-```js
-export function useOptimistic(initialValue, updateFn) {
-  const state = ref(initialValue)
-  let version = 0
+```ts
+import { ref, type Ref } from 'vue'
 
-  async function optimisticUpdate(newValue) {
-    const previousValue = state.value
-    const thisVersion = ++version
+export function useOptimistic<T>(initialValue: T, updateFn: (value: T) => Promise<unknown>) {
+  const state = ref(initialValue) as Ref<T>
+  let confirmed = initialValue // last value the server accepted
+  let latest = 0
 
+  async function optimisticUpdate(newValue: T): Promise<void> {
+    const thisUpdate = ++latest
     state.value = newValue
 
     try {
       await updateFn(newValue)
+      confirmed = newValue
     } catch (e) {
-      // Only roll back if no newer update has happened
-      if (version === thisVersion) {
-        state.value = previousValue
+      // Only the latest update decides what is shown; roll back to what
+      // the server last accepted, never to another optimistic value
+      if (thisUpdate === latest) {
+        state.value = confirmed
       }
       throw e
     }
@@ -83,4 +100,8 @@ export function useOptimistic(initialValue, updateFn) {
 }
 ```
 
-For most single-action UI (like buttons, toggles), the simple snapshot version is fine. Reach for the version counter when the user can realistically trigger overlapping updates.
+For most single-action UI (like buttons, toggles), the simple snapshot version is fine. Reach for this version when the user can realistically trigger overlapping updates.
+
+Neither version controls the order in which the *server* applies overlapping requests. If that matters, disable the control while a request is pending, send updates one after another, or refetch the real state once the last one settles.
+
+In Nuxt, the same idea is usually done with `useFetch`/`useAsyncData`: update `data` optimistically, call `$fetch`, and on failure call `refresh()` to get the real state back.
