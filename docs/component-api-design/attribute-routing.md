@@ -10,6 +10,12 @@ When a component has multiple root elements or needs fine-grained control over w
 - Form components where `placeholder`, `type`, etc. must go to the input, not a wrapper div
 - Library components that need precise control over their public API
 
+## When Not to Use
+
+- Single-root components where attributes already land on the right element: the default fallthrough is simpler and less code to maintain
+- App-level components with a fixed set of consumers: declare the props you need instead of forwarding arbitrary attributes
+- Allowlists (see below) only pay off for shared library components; elsewhere they mostly cause "why does my `@click` do nothing?" bugs
+
 ## The Problem
 
 By default, Vue applies non-declared attributes to the component's root element. This breaks when:
@@ -26,10 +32,10 @@ By default, Vue applies non-declared attributes to the component's root element.
 
 ```vue
 <!-- Consumer tries to pass input attributes -->
-<InputGroup placeholder="Enter name" @change="handleChange" />
+<InputGroup placeholder="Enter name" @blur="validate" />
 ```
 
-The `placeholder` and `@change` fall through to the `<div>`, not the `<input>`. They're wasted.
+The `placeholder` and `@blur` fall through to the `<div>`, not the `<input>`. They're wasted: a `<div>` has no placeholder, and `blur` doesn't bubble up from the input. (Bubbling events like `change` or `input` would still reach the `<div>` listener, which hides the problem until you use one that doesn't bubble.)
 
 ## Solution
 
@@ -37,7 +43,7 @@ The `placeholder` and `@change` fall through to the `<div>`, not the `<input>`. 
 
 ```vue
 <!-- InputGroup.vue -->
-<script setup>
+<script setup lang="ts">
 import { useAttrs } from 'vue'
 
 defineOptions({
@@ -56,14 +62,14 @@ const attrs = useAttrs()
 </template>
 ```
 
-Now `placeholder` and `@change` correctly apply to the input.
+Now `placeholder` and `@blur` correctly apply to the input.
 
 ### Split Routing
 
 Route different attributes to different elements:
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { useAttrs, computed } from 'vue'
 
 defineOptions({
@@ -92,14 +98,14 @@ const wrapperAttrs = computed(() => {
 </template>
 ```
 
-Now `class` and `style` go to the wrapper, everything else goes to the input.
+Now `class` and `style` go to the wrapper, everything else (including `aria-*` attributes, which belong on the focusable element) goes to the input.
 
 ### Safe Attribute Filtering
 
 Only allow specific attributes to pass through:
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { useAttrs, computed } from 'vue'
 
 defineOptions({
@@ -108,11 +114,13 @@ defineOptions({
 
 const attrs = useAttrs()
 
-// Allowlist: only these can fall through
-const safeAttrs = computed(() => {
-  const { class: className, style, 'data-test-id': testId } = attrs
-  return { class: className, style, 'data-test-id': testId }
-})
+// Allowlist: only these can fall through. Listeners are attrs too (`onClick`),
+// so leave them out and the consumer's @click silently stops working.
+const allowed = new Set(['class', 'style', 'data-test-id', 'onClick'])
+
+const safeAttrs = computed(() =>
+  Object.fromEntries(Object.entries(attrs).filter(([key]) => allowed.has(key)))
+)
 </script>
 
 <template>
@@ -122,14 +130,14 @@ const safeAttrs = computed(() => {
 </template>
 ```
 
-This prevents consumers from accidentally overriding your `type="button"` by passing `type="submit"`.
+This prevents consumers from accidentally overriding your `type="button"` by passing `type="submit"`, or adding any other attribute you didn't plan for.
 
 ### Template-Only Routing with `$attrs`
 
 For simple cases, use `$attrs` directly in the template:
 
 ```vue
-<script setup>
+<script setup lang="ts">
 defineOptions({
   inheritAttrs: false
 })
@@ -151,33 +159,30 @@ No need for `useAttrs()` in the script if you're just forwarding everything.
 When you have multiple root elements, Vue can't guess where attributes should go:
 
 ```vue
-<script setup>
-defineOptions({
-  inheritAttrs: false
-})
+<script setup lang="ts">
+defineProps<{ label: string; hint?: string }>()
 </script>
 
 <template>
   <label>{{ label }}</label>
   <input v-bind="$attrs" />
-  <span class="hint">{{ hint }}</span>
+  <span v-if="hint" class="hint">{{ hint }}</span>
 </template>
 ```
 
-Without `inheritAttrs: false`, Vue emits a warning. With it, you explicitly route attrs to the input.
+On a multi-root component Vue applies attributes nowhere by itself. It warns about "extraneous non-props attributes" only when you don't bind `$attrs` anywhere ([Vue docs](https://vuejs.org/guide/components/attrs.html#attribute-inheritance-on-multiple-root-nodes)). Binding `$attrs` on the input is enough; `inheritAttrs: false` isn't needed here. Declare `label` and `hint` as props, or they end up in `$attrs` too and get bound onto the `<input>`.
 
 ## Notes
 
 **Safe Fallthrough Candidates:**
-- `class` and `style` — usually safe, they merge
+- `class` and `style` for outer layout (margin, positioning, grid placement) — they merge
 - `data-*` attributes — for testing, tracking, etc.
-- `aria-*` attributes — accessibility
-- `margin`, `transform`, `opacity`, `z-index` — layout that doesn't break design
+- `aria-*` attributes — accessibility, as long as they land on the element they describe
 
 **Unsafe Fallthrough:**
-- `width`, `height`, `padding` — can break component internals
+- `class` and `style` that reach into the component's internals (padding, sizing of inner parts) — they couple the consumer to your markup
 - `type`, `name`, `value` — can override component logic
-- Event listeners on the wrong element — just don't work
+- Event listeners on the wrong element — non-bubbling events like `focus` and `blur` just don't fire
 
 **Best Practice:**
 Most components should allow `class` and `style` to fall through for layout flexibility. Everything else should be explicitly controlled via props or routed via this pattern.

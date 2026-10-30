@@ -7,23 +7,37 @@ When you build a wrapper around a native element like `<input>`, you want the co
 - When wrapping native elements (inputs, buttons, selects) with extra UI
 - When you need to control where attributes land (on the actual input, not the wrapper div)
 
+## When Not to Use
+
+- When the wrapper adds nothing but a class: use the native element with that class
+- When you want a deliberate, limited API instead of "everything an `<input>` accepts": that is the [Adapter Pattern](adapter-pattern.md)
+
 ## Example
 
 The pattern combines `inheritAttrs: false`, `defineModel`, and `useAttrs`:
 
 ```vue
-<script setup>
+<!-- BaseInput.vue -->
+<script setup lang="ts">
+import { useAttrs, useId } from 'vue'
+
 defineOptions({ inheritAttrs: false }) // stop auto-forwarding
-const model = defineModel()            // handle v-model
+const model = defineModel<string>()    // handle v-model
 const attrs = useAttrs()               // grab attrs manually
+const id = useId()                     // link the label (and error) to the input
 </script>
 
 <template>
   <div class="input-wrapper">
-    <label v-if="$slots.label"><slot name="label" /></label>
+    <label v-if="$slots.label" :for="id"><slot name="label" /></label>
     <!-- forward attrs and model to the actual input, not the div -->
-    <input v-bind="attrs" v-model="model" />
-    <span v-if="$slots.error"><slot name="error" /></span>
+    <input
+      :id="id"
+      v-bind="attrs"
+      v-model="model"
+      :aria-describedby="$slots.error ? `${id}-error` : undefined"
+    />
+    <span v-if="$slots.error" :id="`${id}-error`"><slot name="error" /></span>
   </div>
 </template>
 ```
@@ -43,6 +57,10 @@ const attrs = useAttrs()               // grab attrs manually
 
 ## Notes
 
-Without `inheritAttrs: false`, the `class="big"` and the blur listener would land on the wrapper `<div>`. With this pattern everything reaches the actual `<input>`.
+Without `inheritAttrs: false`, the `class="big"` and the blur listener would land on the wrapper `<div>`. With this pattern everything reaches the actual `<input>`. If you'd rather have `class` and `style` style the wrapper while the rest goes to the input, split them as shown in [Attribute Routing](attribute-routing.md).
 
-These four component API design patterns build on each other in real component libraries. A library might use the [as prop](polymorphic-components.md) for element flexibility, transparent wrapper for input components, [compound components](compound-components.md) for complex widgets like dropdowns, and [renderless components](renderless-components.md) for behavior-only primitives.
+`useId()` (Vue 3.5+) gives each instance a stable, SSR-safe id, so the label is clickable and screen readers announce the error text with the input. If a consumer passes its own `id`, it overrides the generated one on the input but not on the label, so either declare `id` as a prop or leave ids to the component.
+
+`v-model` modifiers like `.trim` arrive in the wrapper, not on the inner `<input>`: read them with `const [model, modifiers] = defineModel<string>()` and apply them in a `set` transformer if you need them.
+
+These component API design patterns build on each other in real component libraries. A library might use the [as prop](polymorphic-components.md) for element flexibility, transparent wrapper for input components, [compound components](compound-components.md) for complex widgets like dropdowns, and [renderless components](renderless-components.md) for behavior-only primitives.

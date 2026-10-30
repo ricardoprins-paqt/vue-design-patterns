@@ -9,12 +9,20 @@ A workaround pattern for destructuring props while maintaining reactivity in Vue
 - When passing props to composables that expect refs
 - To avoid repetitive `toRef(props, 'key')` calls
 
+## When Not to Use
+
+- On Vue 3.5+: use the native reactive destructure shown below instead
+- When you only need one or two props as refs: `toRef(props, 'key')` or a getter `() => props.key` is lighter than converting every prop
+- When you only read props in the template or in `computed`: `props.x` is reactive already, no conversion needed
+
 ## The Problem (Pre-Vue 3.5)
 
 Destructuring props loses reactivity:
 
 ```vue
-<script setup>
+<script setup lang="ts">
+import { watch } from 'vue'
+
 const props = defineProps<{
   count: number
   message: string
@@ -23,8 +31,8 @@ const props = defineProps<{
 // ❌ These are not reactive!
 const { count, message } = props
 
-watch(count, () => {
-  // Never fires — count is a static value
+watch(() => count, () => {
+  // Never fires — count is a plain number captured once
 })
 </script>
 
@@ -37,15 +45,16 @@ watch(count, () => {
 The workaround was verbose:
 
 ```vue
-<script setup>
+<script setup lang="ts">
+import { toRef } from 'vue'
+
 const props = defineProps<{
   userId: number
 }>()
 
 // ✅ Verbose but works
 const userId = toRef(props, 'userId')
-// or
-const userId = computed(() => props.userId)
+// or: const userId = computed(() => props.userId)
 
 useUser(userId) // Composable can watch it
 </script>
@@ -56,8 +65,8 @@ useUser(userId) // Composable can watch it
 Use `toRefs()` to convert the entire props object into individual refs:
 
 ```vue
-<script setup>
-import { toRefs } from 'vue'
+<script setup lang="ts">
+import { toRefs, watch } from 'vue'
 
 const props = defineProps<{
   count: number
@@ -82,7 +91,7 @@ watch(count, (newCount) => {
 ### Passing to Composables
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { toRefs } from 'vue'
 
 const props = defineProps<{
@@ -103,7 +112,7 @@ const { results } = useSearch(filter)
 Only convert what you need:
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { toRef } from 'vue'
 
 const props = defineProps<{
@@ -125,32 +134,35 @@ console.log(props.theme, props.debug)
 In Vue 3.5+, props destructuring is reactive by default:
 
 ```vue
-<script setup>
+<script setup lang="ts">
+import { watch } from 'vue'
+
 // ✅ Vue 3.5+: Reactive destructuring built-in
 const { count = 0, message = 'hello' } = defineProps<{
   count?: number
   message?: string
 }>()
 
-// Automatically reactive in template and watch!
-watch(count, () => {
+// Reactive in the template, computed and watch getters
+watch(() => count, () => {
   console.log('Changed:', count)
 })
 
-// Pass to composables (wrap in getter — the compiler
-// doesn't transform inside composable function bodies)
+// Pass to composables as a getter
 const { data } = useFetch(() => `/api/users/${count}`)
 </script>
 ```
 
 **Important Vue 3.5+ Caveat:**
-The compiler auto-wraps destructured props for `watch` in `<script setup>`, but composables receive the raw value — they run outside the compiler's scope:
+The compiler rewrites every access to `count` into `props.count`. That keeps it reactive wherever the access happens inside a reactive context (template, `computed`, a watch getter), but passing `count` itself to a function passes the current *value*, not something reactive. So both `watch` and composables need a getter ([Vue docs](https://vuejs.org/guide/components/props.html#passing-destructured-props-into-functions)):
 
-```js
-// ✅ Works — compiler wraps it for you in <script setup>
+```ts
+// ❌ Compile error: "count" is a destructured prop and should not be
+//    passed directly to watch(). Pass a getter () => count instead.
 watch(count, () => { /* ... */ })
 
-// ✅ Composables need an explicit getter
+// ✅ Getters keep the connection to the prop
+watch(() => count, () => { /* ... */ })
 useFetch(() => `/api/items/${count}`)
 ```
 
@@ -192,19 +204,19 @@ const { count = 0 } = defineProps<{ count?: number }>()
 **Route Params Example:**
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
-// Pre-3.5: Use computed — toRefs won't survive navigation
+// Use computed — toRefs(route.params) won't survive navigation
 // because route.params is replaced (not mutated) on route change
-const id = computed(() => route.params.id)
+const id = computed(() => String(route.params.id))
 const { user } = useUser(id)
 
-// Vue 3.5+: Just use a getter
-const { user } = useUser(() => route.params.id)
+// Or, if useUser accepts a getter (MaybeRefOrGetter, Vue 3.3+):
+// const { user } = useUser(() => String(route.params.id))
 </script>
 ```
 
