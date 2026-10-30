@@ -6,7 +6,7 @@ Splitting has a cost. Every extracted component adds indirection — you now hav
 
 - When the two pieces always change together
 - When extracting would create a component with 8+ props (the boundary might be wrong)
-- When the section is small, focused, and only used in one place
+- When the section is small, has no state or logic of its own, and is only used in one place (a section with a clear name or its own state is a [Hidden Component](hidden-components.md) worth extracting, even if it's used once)
 
 ## Rules of Thumb
 

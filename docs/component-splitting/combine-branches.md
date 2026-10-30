@@ -41,6 +41,11 @@ When you have multiple `v-if` branches in a template, each branch is often reall
 **After** — each branch is a component:
 
 ```vue
+<script setup lang="ts">
+// state: 'loading' | 'error' | 'empty' | 'success'
+const { state, error, data, retry } = useSearchResults()
+</script>
+
 <template>
   <LoadingState v-if="state === 'loading'" />
   <ErrorState v-else-if="state === 'error'" :error="error" @retry="retry" />
@@ -53,4 +58,6 @@ Now the parent reads like a state machine — you can see all the possible state
 
 ## Notes
 
-**Caveat**: if the branches share a lot of the same markup or state, extracting them might cause more duplication than it saves. Use judgment — the goal is clarity, not extraction for its own sake.
+**Caveat**: if the branches share a lot of the same markup or state, extracting them might cause more duplication than it saves. Use judgment — the goal is clarity, not extraction for its own sake. See [When Not to Split](when-not-to-split.md).
+
+**Type the state**: a plain string `state` next to a separate `error` and `data` allows impossible combinations (`state === 'error'` with no `error`). A discriminated union such as `{ status: 'error'; error: Error } | { status: 'success'; data: Row[] }` lets TypeScript narrow `error` and `data` inside each branch. [Reactive State Machine](../advanced-reactivity/reactive-state-machine.md) takes this further.
