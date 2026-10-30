@@ -34,4 +34,6 @@ Vue will only re-render a row when either `item.id === selectedId` or `item.upda
 
 **Important caveat**: `v-memo` adds its own overhead — Vue has to compare the memo array values on every render cycle. For short lists or simple rows this overhead can actually make things slower. Measure before reaching for it.
 
+**Stale rows**: the memo array must contain *everything* that can change what the row shows. In the example above that relies on `updatedAt` changing whenever any field of the item changes. If something else can change (a locale, a permission, a prop of the list), add it to the array, or the row keeps showing old content.
+
 **Rule of thumb**: consider `v-memo` when your list has more than a few hundred rows AND each row has significant template complexity. For simple lists it's premature optimization.

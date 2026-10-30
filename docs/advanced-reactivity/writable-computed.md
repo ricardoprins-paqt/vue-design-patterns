@@ -12,7 +12,9 @@ Most `computed` properties are read-only derived state. But `computed` accepts a
 
 ### Basic Two-Way Transformation
 
-```js
+```ts
+import { ref, computed } from 'vue'
+
 const celsius = ref(0)
 
 const fahrenheit = computed({
@@ -26,7 +28,7 @@ console.log(celsius.value) // 100
 
 ### Prop Transformation
 
-```js
+```ts
 // Component receives a timestamp, wants to work with a Date object
 const props = defineProps<{ timestamp: number }>()
 const emit = defineEmits<{ 'update:timestamp': [number] }>()
@@ -42,6 +44,24 @@ const date = computed({
 
 ## Notes
 
-This is exactly how `defineModel` works internally — it's a computed with a getter that reads the prop and a setter that emits the update event. If you ever need a transformed version of a `v-model` value, writable computed is the right tool.
+`defineModel` (Vue 3.4+) is built on the same idea: reading gives you the prop, writing emits the update event. Internally it is a `customRef` rather than a `computed`, so it can also keep a local value when the parent doesn't bind `v-model`. For simple transforms it takes `get`/`set` options itself:
+
+```ts
+const timestamp = defineModel<number>('timestamp', { required: true })
+
+// Transform on the way out, without an extra computed
+const [value, modifiers] = defineModel<string, 'trim'>({
+  set: (v) => (modifiers.trim ? v.trim() : v)
+})
+```
+
+If you need a value of a *different type* (a `Date` for a `number` prop, like above), a writable computed over the model is the right tool:
+
+```ts
+const date = computed({
+  get: () => new Date(timestamp.value),
+  set: (d: Date) => { timestamp.value = d.getTime() }
+})
+```
 
 See also: [V-Model Transformer](../form-patterns/v-model-transformer.md) for the form-specific application of this pattern.

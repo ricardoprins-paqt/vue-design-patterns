@@ -20,7 +20,7 @@ Computed values are cached based on their reactive dependencies — they only re
 <div v-for="item in processedData">...</div>
 ```
 
-```js
+```ts
 const processedData = computed(() => processData(rawData.value))
 ```
 
@@ -28,17 +28,23 @@ const processedData = computed(() => processData(rawData.value))
 
 Rather than one massive computed that does everything, chain smaller ones — Vue only recomputes the parts whose dependencies actually changed:
 
-```js
-// If filter changes, Vue recomputes filtered but uses cached sorted
-// If sort changes, Vue recomputes sorted from cached filtered
-// Only if rawData changes does everything recompute
+```ts
+// If page changes, only paginated recomputes
+// If sort changes, sorted recomputes from cached filtered, then paginated
+// If filters or rawData change, everything downstream recomputes
 const filtered = computed(() => rawData.value.filter(applyFilters))
 const sorted = computed(() => [...filtered.value].sort(applySort))
-const paginated = computed(() => sorted.value.slice(page.value * size, ...))
+const paginated = computed(() => sorted.value.slice(page.value * size, (page.value + 1) * size))
 ```
+
+Order the chain so the inputs that change most often come last: they then only re-run the cheap tail of the chain.
 
 Each `computed` is a cache boundary. Changes propagate only as far as they need to.
 
 ## Notes
 
 This is simple but frequently misunderstood. The key insight is that each computed in a chain acts as a cache boundary — downstream computeds only re-run if their specific input actually changed, not if any upstream data changed.
+
+"Changed" means a new value by `Object.is`. Since Vue 3.4, a computed that recomputes to the *same* primitive doesn't trigger anything downstream, but a computed that returns a new array or object (like `filter` or `[...x].sort()`) always counts as changed.
+
+Don't wrap trivial expressions (`a.value + b.value`, a property lookup) in their own computed just for caching: the bookkeeping costs more than the work it saves.

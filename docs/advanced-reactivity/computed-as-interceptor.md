@@ -1,6 +1,6 @@
 # Computed as Interceptor
 
-Using writable `computed` properties for synchronous side effects instead of `watch`. When you need side effects to execute **immediately** and **synchronously** during value changes, a computed get/set is more reliable than watch's async callback timing.
+Using writable `computed` properties for synchronous side effects instead of `watch`. When you need side effects to execute **immediately** and **synchronously** during value changes, a computed get/set is more reliable than watch's default async callback timing.
 
 ## When to Use
 
@@ -9,15 +9,20 @@ Using writable `computed` properties for synchronous side effects instead of `wa
 - Intercepting value changes to validate or transform before writing
 - Any scenario where `watch`'s async timing causes problems
 
+## When Not to Use
+
+- If you only need synchronous timing, `watch(source, cb, { flush: 'sync' })` is the built-in option. Reach for the interceptor when you need to *reject or transform* the write, or want the side effect tied to the write itself.
+- For most side effects (API calls, DOM work, logging after the fact) a normal `watch` is clearer and more idiomatic.
+
 ## The Problem
 
-`watch` callbacks are **asynchronous** — they run after the current synchronous execution completes:
+`watch` callbacks are **asynchronous** by default (`flush: 'pre'`) — they run after the current synchronous execution completes:
 
-```js
+```ts
 import { ref, watch } from 'vue'
 
 const value = ref(0)
-const cache = new Map()
+const cache = new Map<string, number>()
 
 watch(value, (newVal) => {
   cache.set('value', newVal)
@@ -32,13 +37,13 @@ console.log('Changed')
 // Cached  ← runs AFTER the synchronous code
 ```
 
-In SSR, this is a problem — the response is sent after the synchronous execution completes, so a `watch` callback runs too late:
+In SSR it's worse. During server rendering Vue does not run watchers created in a component's setup at all, unless they are `immediate` or use `flush: 'sync'`. So a normal `watch` that writes to a server cache never fires:
 
-```js
-const data = ref([])
+```ts
+const data = ref<Category[]>([])
 
 watch(data, (newVal) => {
-  serverCache.set('data', newVal) // ❌ Runs too late — response already sent
+  serverCache.set('data', newVal) // ❌ Never runs during SSR
 })
 
 data.value = await fetchData()
@@ -48,11 +53,11 @@ data.value = await fetchData()
 
 Use a writable `computed` as a gatekeeper that executes side effects **synchronously**:
 
-```js
+```ts
 import { ref, computed } from 'vue'
 
 const innerRef = ref(0)
-const cache = new Map()
+const cache = new Map<string, number>()
 
 const value = computed({
   get: () => innerRef.value,
@@ -73,11 +78,17 @@ console.log('Changed')
 
 ### SSR Cache Example
 
-```js
-import { ref, computed } from 'vue'
+```ts
+import { ref, computed, type Ref } from 'vue'
 
-export function useCachedSsrRef(defaultValue, key, serverCache) {
-  const innerRef = ref(defaultValue)
+interface Cache<T> {
+  has(key: string): boolean
+  get(key: string): T | undefined
+  set(key: string, value: T): void
+}
+
+export function useCachedSsrRef<T>(defaultValue: T, key: string, serverCache: Cache<T>): Ref<T> {
+  const innerRef = ref(defaultValue) as Ref<T>
 
   if (!import.meta.env.SSR) {
     return innerRef
@@ -85,11 +96,11 @@ export function useCachedSsrRef(defaultValue, key, serverCache) {
 
   // Initialize from cache if available
   if (serverCache.has(key)) {
-    innerRef.value = serverCache.get(key)
+    innerRef.value = serverCache.get(key) as T
   }
 
   // Wrap with computed to intercept writes
-  const wrapper = computed({
+  return computed({
     get: () => innerRef.value,
 
     set: (newVal) => {
@@ -98,32 +109,34 @@ export function useCachedSsrRef(defaultValue, key, serverCache) {
       innerRef.value = newVal
     }
   })
-
-  return wrapper
 }
 ```
 
 Usage:
 
-```js
-const categories = useCachedSsrRef([], 'store-categories', serverCache)
+```ts
+const categories = useCachedSsrRef<Category[]>([], 'store-categories', serverCache)
 
-categories.value = await fetchCategories()
-// Cache write happens synchronously — before the response is sent
+if (categories.value.length === 0) {
+  categories.value = await fetchCategories()
+  // Cache write happens synchronously — before the response is sent
+}
 ```
+
+The `serverCache` lives at module level on the server, so it is shared by **all requests and all users**. Only cache public data this way (see the SSR warning in [Singleton Composable](../state-sharing/singleton-composable.md)). On the client this composable returns the default value, so the server value still has to reach the browser through your framework's state transfer. In Nuxt, use Nitro's cached handlers and `useFetch` instead (see [Cached Ref Pattern](../performance-patterns/cached-ref-pattern.md)).
 
 ### Validation Example
 
-```js
-import { ref, computed } from 'vue'
+```ts
+import { ref, computed, type Ref } from 'vue'
 
-function useValidatedRef(defaultValue, validator) {
-  const innerRef = ref(defaultValue)
-  
-  const validated = computed({
+function useValidatedRef<T>(defaultValue: T, validator: (value: T) => boolean) {
+  const innerRef = ref(defaultValue) as Ref<T>
+
+  return computed({
     get: () => innerRef.value,
-    
-    set: (newVal) => {
+
+    set: (newVal: T) => {
       if (!validator(newVal)) {
         console.warn('Invalid value rejected:', newVal)
         return // Reject invalid values
@@ -131,8 +144,6 @@ function useValidatedRef(defaultValue, validator) {
       innerRef.value = newVal
     }
   })
-  
-  return validated
 }
 
 const age = useValidatedRef(0, (val) => val >= 0 && val <= 120)
@@ -143,22 +154,20 @@ age.value = 25   // Accepted
 
 ### Logging/Tracking Example
 
-```js
-import { ref, computed } from 'vue'
+```ts
+import { ref, computed, type Ref } from 'vue'
 
-function useTrackedRef(defaultValue, trackFn) {
-  const innerRef = ref(defaultValue)
-  
-  const tracked = computed({
+function useTrackedRef<T>(defaultValue: T, trackFn: (value: T) => void) {
+  const innerRef = ref(defaultValue) as Ref<T>
+
+  return computed({
     get: () => innerRef.value,
-    
-    set: (newVal) => {
+
+    set: (newVal: T) => {
       trackFn(newVal) // Analytics, logging, etc.
       innerRef.value = newVal
     }
   })
-  
-  return tracked
 }
 
 const searchQuery = useTrackedRef('', (query) => {
@@ -175,9 +184,9 @@ searchQuery.value = 'Vue patterns'
 
 | Aspect | watch | computed get/set |
 |--------|-------|------------------|
-| Timing | Async (next tick) | Sync (immediate) |
+| Timing | Async by default (`flush: 'pre'`), sync with `flush: 'sync'` | Sync (immediate) |
 | Use Case | Side effects | Transformations + sync side effects |
-| Flexibility | More options (flush timing) | Simple get/set |
+| Flexibility | More options (flush timing) | Simple get/set, can reject writes |
 | Composability | Independent | Value must flow through computed |
 
 **When to Use Each:**
@@ -188,18 +197,18 @@ searchQuery.value = 'Vue patterns'
 - Computed get/set is less idiomatic than watch for side effects
 - Only use when synchronous timing is critical
 - Can't use `flush: 'post'` or other watch timing options
-- Must always update `innerRef.value` or create infinite loop
+- If the setter doesn't write `innerRef.value`, the write is silently dropped. That is what makes validation work, but it is surprising if you forget it by accident
 
 **SSR Specific:**
-In SSR, the response is sent after the synchronous execution completes. If you need to write to a cache before responding, `watch` is too late — use computed get/set.
+During SSR, Vue skips watchers created in component setup unless they are `immediate` or `flush: 'sync'`. If you need to write to a cache before responding, a default `watch` never gets the chance — use computed get/set (or a `flush: 'sync'` watcher).
 
 **Alternative Pattern:**
 You could also use an explicit setter function:
 
-```js
+```ts
 const innerRef = ref(0)
 
-function setValue(newVal) {
+function setValue(newVal: number) {
   cache.set('value', newVal)
   innerRef.value = newVal
 }

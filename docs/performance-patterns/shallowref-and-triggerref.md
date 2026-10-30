@@ -8,27 +8,43 @@ When you have large arrays or complex objects that you always replace wholesale 
 - Data grids with client-side sorting and filtering
 - Any large collection where you replace the whole array rather than mutating individual items
 
+## When Not to Use
+
+- Rows that are edited in place (inline editing, `v-model` on row fields): those edits need deep reactivity, or you'll be calling `triggerRef` everywhere.
+- Small collections: deep reactivity costs little there, and plain `ref` is easier to reason about.
+
 ## Example
 
-```js
-// ❌ reactive() or ref() will deeply proxy every object in this array
-// For 10,000 rows that's a lot of proxy wrapping
-const rows = ref([])
-rows.value = await fetchLargeDataset() // Vue proxies every nested object
+```ts
+// ❌ ref() makes the array deeply reactive: every row becomes a proxy
+// as soon as it's accessed (rendering accesses all of them), and every
+// property read during render is tracked. For 10,000 rows that adds up.
+const rows = ref<Row[]>([])
+rows.value = await fetchLargeDataset()
 
 // ✅ shallowRef only tracks the assignment itself
-const rows = shallowRef([])
+const rows = shallowRef<Row[]>([])
 rows.value = await fetchLargeDataset() // Vue only tracks rows.value itself
 ```
 
 When you do need to mutate the contents and trigger an update, use `triggerRef` manually:
 
-```js
-function sortRows(key) {
+```ts
+function sortRows(key: keyof Row) {
   rows.value.sort((a, b) => a[key] > b[key] ? 1 : -1) // mutate in place
   triggerRef(rows) // manually tell Vue something changed
 }
 ```
+
+Often you don't need `triggerRef` at all: assigning a new array is just as cheap and works everywhere:
+
+```ts
+function sortRows(key: keyof Row) {
+  rows.value = rows.value.toSorted((a, b) => a[key] > b[key] ? 1 : -1)
+}
+```
+
+Prefer this when other code derives from `rows`. After an in-place mutation + `triggerRef`, a `computed` that returns the same array (for example `computed(() => rows.value)`) recomputes to the identical object, so Vue sees no change and anything depending on it doesn't update.
 
 ## Notes
 

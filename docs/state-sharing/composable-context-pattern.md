@@ -1,8 +1,8 @@
 # Composable Context Pattern
 
-The most elegant state sharing pattern — it combines the [Singleton Composable](singleton-composable.md) and [Typed Provide Inject](typed-provide-inject.md) into a single composable that can behave as both a provider and a consumer depending on where it's called.
+The most elegant state sharing pattern — it takes the ergonomics of a [Singleton Composable](singleton-composable.md) (just call `useX()`) and the scoping of [Typed Provide Inject](typed-provide-inject.md), by pairing a provider composable with a consumer composable in one module.
 
-The idea is that a feature's state is provided at a high level and consumed anywhere below — but the `provide` and `inject` are hidden inside the same composable so consumers don't need to know about injection keys at all.
+The idea is that a feature's state is provided at a high level and consumed anywhere below — but the `provide` and `inject` are hidden inside the same module so consumers don't need to know about injection keys at all. Unlike a singleton, each provider creates its own instance, so two forms on one page don't share state.
 
 ## When to Use
 
@@ -10,16 +10,21 @@ The idea is that a feature's state is provided at a high level and consumed anyw
 - When you want to hide the complexity of `provide`/`inject` from consumers
 - Form state, wizard step state, layout context
 
+## When Not to Use
+
+- When there is only ever one instance of the state in the app. A [Singleton Composable](singleton-composable.md) is simpler.
+- When parent and child are direct neighbours. Props and events are more explicit than an invisible context.
+
 ## Example
 
 ```ts
 // composables/useFormContext.ts
 import { provide, inject, ref, readonly } from 'vue'
-import type { InjectionKey } from 'vue'
+import type { InjectionKey, Ref } from 'vue'
 
 interface FormContext {
-  isSubmitting: Ref<boolean>
-  errors: Ref<Record<string, string>>
+  isSubmitting: Readonly<Ref<boolean>>
+  errors: Readonly<Ref<Readonly<Record<string, string>>>>
   setError: (field: string, message: string) => void
 }
 
@@ -54,19 +59,27 @@ export function useForm() {
 
 ```vue
 <!-- Form.vue -->
-<script setup>
+<script setup lang="ts">
+import { provideForm } from '@/composables/useFormContext'
+
 const { isSubmitting, errors } = provideForm()
 </script>
 
 <!-- InputField.vue - anywhere inside Form -->
-<script setup>
+<script setup lang="ts">
+import { useForm } from '@/composables/useFormContext'
+
 const { errors, setError } = useForm()
 </script>
 ```
 
+`provideForm()` returns the context because the providing component can't `inject` its own `provide` — `inject` only looks at ancestors. `useForm()` called inside `Form.vue` itself would throw.
+
 ## Notes
 
 The `Symbol` key is completely internal — consumers just call `useForm()`, they never deal with injection keys directly. This is exactly how Vue Router exposes `useRouter()` and `useRoute()` — they're injecting from context provided by the router plugin, you just never see the `Symbol`.
+
+VueUse packages this pattern as [`createInjectionState`](https://vueuse.org/shared/createInjectionState/), which returns the provider and consumer pair for you.
 
 The four state sharing patterns cover a spectrum from simple to structured:
 - [Singleton Composable](singleton-composable.md) for small apps or simple shared state

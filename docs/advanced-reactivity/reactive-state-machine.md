@@ -2,9 +2,19 @@
 
 State machines make impossible states impossible. Instead of having multiple booleans that can contradict each other, you have a single state value that can only be one thing at a time, with explicit transitions.
 
+## When to Use
+
+- Async flows with several states (idle, loading, success, error) that must never overlap
+- UI with a few modes where only some moves between them are allowed
+
+## When Not to Use
+
+- Two states: a single boolean is fine
+- Many states with guards, entry/exit actions or nested states: use a library like XState instead of growing this one
+
 ## The Problem
 
-```js
+```ts
 // ❌ booleans can contradict — isLoading AND isError being true simultaneously
 const isLoading = ref(false)
 const isError = ref(false)
@@ -13,20 +23,24 @@ const isSuccess = ref(false)
 
 ## Solution
 
-```js
+```ts
 // ✅ only one state at a time, transitions are explicit
-function useStateMachine(initial, transitions) {
-  const state = ref(initial)
+import { ref, readonly, type Ref } from 'vue'
 
-  function transition(event) {
-    const nextState = transitions[state.value]?.[event]
+type Transitions<S extends string, E extends string> = Record<S, Partial<Record<E, S>>>
+
+function useStateMachine<S extends string, E extends string>(initial: S, transitions: Transitions<S, E>) {
+  const state = ref(initial) as Ref<S>
+
+  function transition(event: E) {
+    const nextState = transitions[state.value][event]
     if (nextState) state.value = nextState
     // if no transition defined, event is silently ignored
   }
 
-  const is = (s) => state.value === s
+  const is = (s: S) => state.value === s
 
-  return { state, transition, is }
+  return { state: readonly(state), transition, is }
 }
 
 // Define valid states and which events move between them
@@ -44,7 +58,7 @@ const { state, transition, is } = useStateMachine('idle', {
 <DataView v-else-if="is('success')" />
 ```
 
-```js
+```ts
 // Driving it
 transition('FETCH')    // idle → loading
 transition('SUCCESS')  // loading → success
@@ -55,22 +69,26 @@ transition('FETCH')    // ignored — no FETCH event defined for success state
 
 A search feature combining [debounced ref](custom-ref.md), state machine, and [Race Condition Handling](../async-and-data-fetching/race-condition-handling.md):
 
-```js
-function useSearch(searchFn) {
+```ts
+import { ref, watch, onWatcherCleanup, type Ref } from 'vue'
+
+type SearchFn<T> = (query: string, options: { signal: AbortSignal }) => Promise<T[]>
+
+function useSearch<T>(searchFn: SearchFn<T>) {
   const query = useDebouncedRef('', 300)
 
-  const { state, transition, is } = useStateMachine('idle', {
+  const { transition, is } = useStateMachine('idle', {
     idle:     { SEARCH: 'loading' },
-    loading:  { SUCCESS: 'success', ERROR: 'error', SEARCH: 'loading' },
+    loading:  { SUCCESS: 'success', ERROR: 'error', SEARCH: 'loading', RESET: 'idle' },
     success:  { SEARCH: 'loading', RESET: 'idle' },
     error:    { SEARCH: 'loading', RESET: 'idle' },
   })
 
-  const results = ref([])
-  const error = ref(null)
+  const results = ref([]) as Ref<T[]>
+  const error = ref<unknown>(null)
 
-  const { pause, resume } = watch(query, async () => {
-    if (!query.value) { transition('RESET'); return }
+  const { pause, resume } = watch(query, async (q) => {
+    if (!q) { transition('RESET'); return }
 
     const controller = new AbortController()
     onWatcherCleanup(() => controller.abort())
@@ -78,10 +96,12 @@ function useSearch(searchFn) {
     transition('SEARCH')
 
     try {
-      results.value = await searchFn(query.value, { signal: controller.signal })
+      const found = await searchFn(q, { signal: controller.signal })
+      if (controller.signal.aborted) return // a newer search took over
+      results.value = found
       transition('SUCCESS')
     } catch (e) {
-      if (e.name === 'AbortError') return
+      if (controller.signal.aborted) return
       error.value = e
       transition('ERROR')
     }
@@ -90,6 +110,8 @@ function useSearch(searchFn) {
   return { query, results, error, is, pause, resume }
 }
 ```
+
+`loading` needs a `RESET` transition too: if the user clears the search box while a request is running, the request is aborted and the machine has to go back to `idle`, otherwise it stays in `loading` forever. Checking `controller.signal.aborted` after the `await` keeps a stale response from winning when `searchFn` ignores the signal.
 
 ## Notes
 

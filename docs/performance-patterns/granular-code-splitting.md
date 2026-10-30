@@ -8,11 +8,19 @@ The naive approach to code splitting is splitting at the route level — each pa
 - Components that include large libraries (chart libs, rich text editors)
 - When you want coordinated loading states across multiple async components
 
+## When Not to Use
+
+- Small components or content above the fold: every async component is an extra request and a later paint, which can cost more than the bytes it saves.
+- In Nuxt, prefix the component with `Lazy` (`<LazyHeavyChart />`) instead of calling `defineAsyncComponent` yourself. Lazy hydration (`<LazyHeavyChart hydrate-on-visible />`) also delays the JavaScript work for server-rendered content.
+- `<Suspense>` is still marked **experimental** in Vue 3.5. If you'd rather not depend on it, give each async component its own `loadingComponent` / `delay` options instead.
+
 ## Example
 
 ### Basic Async Components
 
-```js
+```ts
+import { defineAsyncComponent } from 'vue'
+
 // These components are only loaded when they're first rendered
 const HeavyChart = defineAsyncComponent(() => import('./HeavyChart.vue'))
 const DataGrid = defineAsyncComponent(() => import('./DataGrid.vue'))
@@ -47,18 +55,21 @@ For even more control, nest `Suspense` boundaries — critical content loads fir
 ```vue
 <Suspense>
   <template #default>
-    <!-- Critical content — page waits for this -->
-    <UserProfile :user="user" />
+    <!-- Suspense slots need a single root node -->
+    <div class="profile-page">
+      <!-- Critical content — page waits for this -->
+      <UserProfile :user="user" />
 
-    <!-- Secondary content — loads independently, doesn't block above -->
-    <Suspense>
-      <template #default>
-        <RecommendationEngine />
-      </template>
-      <template #fallback>
-        <RecommendationSkeleton />
-      </template>
-    </Suspense>
+      <!-- Secondary content — loads independently, doesn't block above -->
+      <Suspense>
+        <template #default>
+          <RecommendationEngine />
+        </template>
+        <template #fallback>
+          <RecommendationSkeleton />
+        </template>
+      </Suspense>
+    </div>
   </template>
 
   <template #fallback>
@@ -67,7 +78,7 @@ For even more control, nest `Suspense` boundaries — critical content loads fir
 </Suspense>
 ```
 
-`UserProfile` loading doesn't wait for `RecommendationEngine`. But `RecommendationEngine` has its own skeleton so it doesn't cause layout shift when it arrives.
+`UserProfile` loading doesn't wait for `RecommendationEngine`. But `RecommendationEngine` has its own skeleton so it doesn't cause layout shift when it arrives. (If you *do* want the outer boundary to wait for the inner one, add the `suspensible` prop to the inner `<Suspense>`.)
 
 ## Notes
 

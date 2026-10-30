@@ -9,20 +9,26 @@ A pattern for creating refs that automatically persist their values to storage â
 - User preferences that should persist across sessions
 - SSR apps where data can be cached server-side with a TTL
 
+## When Not to Use
+
+- For localStorage, VueUse's `useLocalStorage` / `useStorage` already does this, including SSR guards, serializers and syncing between tabs.
+- In Nuxt, cache on the server with Nitro (see below) and let `useFetch` / `useAsyncData` transfer the data to the client, instead of a hand-written SSR ref.
+- Never put user-specific or sensitive data in a shared server cache.
+
 ## Example
 
 ### Client-Side: localStorage
 
-```js
-import { ref, watch } from 'vue'
+```ts
+import { ref, watch, type Ref } from 'vue'
 
-export function useStoredRef(defaultValue, key) {
-  const innerRef = ref(defaultValue)
+export function useStoredRef<T>(defaultValue: T, key: string): Ref<T> {
+  const innerRef = ref(defaultValue) as Ref<T>
   
   // Load cached value on initialization
   const cachedValue = localStorage.getItem(key)
-  if (cachedValue) {
-    innerRef.value = JSON.parse(cachedValue)
+  if (cachedValue !== null) {
+    innerRef.value = JSON.parse(cachedValue) as T
   }
   
   // Sync changes to storage
@@ -39,34 +45,41 @@ export function useStoredRef(defaultValue, key) {
 ```
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { useStoredRef } from '@/composables/storage'
 
+interface Article {
+  id: number
+  title: string
+}
+
 // Articles persist across page reloads
-const articles = useStoredRef([], 'articles')
+const articles = useStoredRef<Article[]>([], 'articles')
 
 articles.value.push({ id: 1, title: 'Type-safe Injections' })
 // Automatically saved to localStorage
 </script>
 ```
 
+`localStorage` only exists in the browser. In an SSR app, only call this on the client (for example in `onMounted`), or use VueUse's `useLocalStorage`, which handles that for you.
+
 ### Client-Side: IndexedDB
 
 For larger data or better storage quotas, use IndexedDB with a wrapper like `idb-keyval`:
 
-```js
-import { ref, toRaw, watch } from 'vue'
+```ts
+import { ref, toRaw, watch, type Ref } from 'vue'
 import { get, set } from 'idb-keyval'
 
-export function useStoredRef(defaultValue, key) {
-  const innerRef = ref(defaultValue)
+export function useStoredRef<T>(defaultValue: T, key: string): Ref<T> {
+  const innerRef = ref(defaultValue) as Ref<T>
   
   // Async initialization
-  get(key)
+  get<string>(key)
     .then((cachedValue) => {
       // Only update if value hasn't been changed by other logic
       if (toRaw(innerRef.value) === defaultValue && cachedValue !== undefined) {
-        innerRef.value = JSON.parse(cachedValue)
+        innerRef.value = JSON.parse(cachedValue) as T
       }
     })
     .catch((err) => console.error(err))
@@ -74,7 +87,8 @@ export function useStoredRef(defaultValue, key) {
   watch(
     innerRef,
     async (newValue) => {
-      // JSON.stringify needed because Vue adds non-serializable properties
+      // IndexedDB stores values with structured clone, which can't clone
+      // Vue's reactive proxies, so store a plain JSON string instead
       await set(key, JSON.stringify(newValue))
     },
     { deep: true }
@@ -84,58 +98,29 @@ export function useStoredRef(defaultValue, key) {
 }
 ```
 
-### Server-Side: LRU Cache (Nuxt)
+### Server-Side: Cached API Route (Nuxt)
 
-Cache expensive data on the server with a TTL to avoid refetching for every user:
+Cache expensive data on the server with a TTL to avoid refetching for every user. In Nuxt, do this in the server layer with Nitro's cache, not in a component:
 
-```js
-// server/cache.js
-import { LRUCache } from 'lru-cache'
-
-const FIVE_MINUTES = 1000 * 60 * 5
-
-export const serverCache = new LRUCache({ max: 1000, ttl: FIVE_MINUTES })
+```ts
+// server/api/categories.get.ts
+export default defineCachedEventHandler(
+  async () => {
+    return await fetchCategoriesFromCms() // expensive call
+  },
+  { maxAge: 60 * 5 } // seconds: 5 minutes
+)
 ```
 
-```js
-// composables/useCachedSsrRef.js
-import { ref, computed } from 'vue'
-import { serverCache } from '@/server/cache'
-
-export function useCachedSsrRef(defaultValue, key) {
-  const innerRef = ref(defaultValue)
-  
-  if (!import.meta.env.SSR) {
-    return innerRef
-  }
-  
-  // Initialize with cached value if available
-  if (serverCache.has(key)) {
-    innerRef.value = serverCache.get(key)
-  }
-  
-  // Use computed as a gatekeeper to update cache synchronously
-  const wrapper = computed({
-    get: () => innerRef.value,
-    set(newVal) {
-      serverCache.set(key, newVal)
-      innerRef.value = newVal
-    }
-  })
-  
-  return wrapper
-}
+```vue
+<script setup lang="ts">
+// The first request within the TTL calls the CMS, later requests get the cached result.
+// useFetch also sends the data to the client in the payload, so hydration matches.
+const { data: categories } = await useFetch('/api/categories')
+</script>
 ```
 
-```js
-// Usage in a component
-const categories = useCachedSsrRef([], 'store-categories')
-
-// First request fetches and caches
-categories.value = await fetchCategories()
-
-// Next requests within TTL use cached value
-```
+Nitro's cache is in memory by default and can use Redis or another storage driver in production. For a framework-agnostic version of the same idea (a server cache written synchronously from a ref), see [Computed as Interceptor](../advanced-reactivity/computed-as-interceptor.md).
 
 ## Notes
 
@@ -146,9 +131,9 @@ categories.value = await fetchCategories()
 - The `deep: true` option ensures nested changes trigger saves
 
 **Server-Side:**
-- In-memory caches (LRU) are fast but don't scale across multiple servers
-- Use Redis or similar for distributed caching in production
-- `computed` is used instead of `watch` because it executes synchronously â€” critical for cache writes before the response is sent
+- In-memory caches are fast but don't scale across multiple servers
+- Use Redis or similar for distributed caching in production (Nitro supports this through its storage drivers)
+- A server cache is shared by **all users**: only cache public data, or include the user in the cache key
 - The pattern prevents refetching expensive data for every user, dramatically improving SSR response times
 
 **Trade-offs:**

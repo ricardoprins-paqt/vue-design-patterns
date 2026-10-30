@@ -17,7 +17,7 @@ Finding components that are already implicitly there in your code, just not extr
   <div class="page">
     <!-- user profile section -->
     <div class="profile">
-      <img :src="user.avatar" />
+      <img :src="user.avatar" alt="" />
       <h2>{{ user.name }}</h2>
       <p>{{ user.bio }}</p>
       <button @click="isFollowing = !isFollowing">
@@ -47,7 +47,31 @@ Finding components that are already implicitly there in your code, just not extr
 </template>
 ```
 
-The profile even has its own local state (`isFollowing`). Extracting them gives each piece a clear responsibility and makes the parent template read like a high-level description of the page.
+The profile even has its own local state (`isFollowing`), which moves into the new component, so the page no longer has to know about it:
+
+```vue
+<!-- UserProfile.vue -->
+<script setup lang="ts">
+import { ref } from 'vue'
+
+defineProps<{ user: User }>()
+
+const isFollowing = ref(false)
+</script>
+
+<template>
+  <div class="profile">
+    <img :src="user.avatar" alt="" />
+    <h2>{{ user.name }}</h2>
+    <p>{{ user.bio }}</p>
+    <button @click="isFollowing = !isFollowing">
+      {{ isFollowing ? 'Unfollow' : 'Follow' }}
+    </button>
+  </div>
+</template>
+```
+
+Extracting them gives each piece a clear responsibility and makes the parent template read like a high-level description of the page.
 
 ## Notes
 
