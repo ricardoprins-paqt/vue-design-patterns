@@ -1,6 +1,6 @@
 # Controller Components
 
-The Controller Component is the glue layer. It imports the composable (model), orchestrates the logic, and passes results down to [Humble Components](humble-components.md) (views). It contains no UI of its own — just wiring.
+The Controller Component is the glue layer. It imports the composable (model), orchestrates the logic, and passes results down to [Humble Components](humble-components.md) (views). It contains no UI of its own — just wiring and orchestration: calling services, handling the result, passing state down.
 
 ## When to Use
 
@@ -8,16 +8,37 @@ The Controller Component is the glue layer. It imports the composable (model), o
 - As the "Controller" layer in [The MVC Triad](the-mvc-triad.md)
 - When a page or feature needs to coordinate multiple composables and components
 
+## When Not to Use
+
+- Simple pages with one composable and one or two components. A page component that does both is easier to read than an extra layer.
+- When the "wiring" would just pass props through to a deep tree. Use [Typed Provide Inject](../state-sharing/typed-provide-inject.md) or a store (Pinia) instead of making the controller a prop relay.
+
 ## Example
 
 ```vue
 <!-- CartController.vue -->
-<script setup>
-const { items, discountCode, total, addItem, removeItem } = useCart()
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useCart } from '@/composables/useCart'
+import { useAuth } from '@/composables/useAuth'
+import { checkoutService } from '@/services/checkout'
+import CartDisplay from './CartDisplay.vue'
+import DiscountInput from './DiscountInput.vue'
+import CheckoutButton from './CheckoutButton.vue'
+
+const { items, discountCode, total, removeItem } = useCart()
 const { user } = useAuth()
 
-const handleCheckout = async () => {
-  await checkoutService.submit({ items: items.value, userId: user.value.id })
+const isSubmitting = ref(false)
+
+async function handleCheckout() {
+  if (!user.value) return
+  isSubmitting.value = true
+  try {
+    await checkoutService.submit({ items: items.value, userId: user.value.id })
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -28,16 +49,17 @@ const handleCheckout = async () => {
       :total="total"
       @remove-item="removeItem"
     />
-    <DiscountInput
-      v-model="discountCode"
-    />
+    <DiscountInput v-model="discountCode" />
     <CheckoutButton
-      :disabled="items.length === 0"
+      label="Checkout"
+      :disabled="items.length === 0 || isSubmitting"
       @click="handleCheckout"
     />
   </div>
 </template>
 ```
+
+`useCart` is the [Thin Composable](thin-composables.md) from that page; `CartDisplay` emits `remove-item` with the item id, which goes straight to `removeItem(id)`. Error handling is left to the caller here; in a real app the controller is also where you would show a failed checkout to the user.
 
 ## Can Controllers Have HTML?
 

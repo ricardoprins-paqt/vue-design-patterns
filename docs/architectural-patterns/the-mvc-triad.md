@@ -7,8 +7,8 @@ The three roles — [Humble Components](humble-components.md), [Thin Composables
 Most Vue apps start clean and slowly become a mess of components that fetch data, manage state, handle business logic, AND render UI all in one place:
 
 ```vue
-<script setup>
-// fetching data
+<script setup lang="ts">
+// fetching data (Nuxt's useFetch)
 const { data } = await useFetch('/api/cart')
 
 // business logic
@@ -34,11 +34,12 @@ Everything is tangled together. Testing any one piece requires the whole compone
 ## The Solution
 
 ```
-Thin Composable          Controller Component       Humble Components
-(pure business logic) → (orchestrates & connects) → (renders UI)
-    calculateTotal()         useCart()                 CartDisplay
-    applyDiscount()          useAuth()                 CheckoutButton
-    validateEmail()          handleCheckout()          DiscountInput
+Thin Composables              Controller Component        Humble Components
+(pure logic + thin wrapper) → (orchestrates & connects) → (renders UI)
+  useCart()                     CartController.vue          CartDisplay
+    calculateTotal()              handleCheckout()          CheckoutButton
+    applyDiscount()                                         DiscountInput
+  useAuth()
 ```
 
 The triad gives you clear places for each concern:
@@ -48,8 +49,14 @@ The triad gives you clear places for each concern:
 
 ## Why "Not-Quite-MVC"
 
-Traditional MVC has the View directly observing the Model. In Vue's version, the Controller sits between them and the data flows reactively rather than through callbacks. It's the spirit of MVC applied to a reactive component system.
+Traditional MVC has the View directly observing the Model. In Vue's version, the View never touches the Model: the Controller reads reactive state from the composables and passes it down as props, and the View reports user intent back up as events. It's the spirit of MVC applied to a reactive component system.
 
 ## Notes
 
 You don't need all three layers everywhere. A simple static page just needs humble components. A form with local state might just need a composable. The triad is most valuable when business logic starts getting complex enough that you wish you could test it in isolation.
+
+The cost is indirection: three files instead of one, and props and events to follow between them. Pay it where the logic is worth testing on its own, not on every page.
+
+UI-only state, like `isOpen` and `activeTab` in the problem example, is not business logic. It stays local in the component that renders it.
+
+This is this site's own adaptation, not a formal pattern: "MVC" is used loosely, as a map of who does what.
