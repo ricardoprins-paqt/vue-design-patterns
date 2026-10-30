@@ -8,23 +8,31 @@
 - Validated refs (reject invalid values)
 - Any ref that needs custom behavior on get or set
 
+## When Not to Use
+
+- For a debounced value, VueUse's `refDebounced` or `watchDebounced` keep the input bound to a normal ref and debounce only the consumer, which avoids the `v-model` pitfall below.
+- If you only need to transform or validate on write, a [Writable Computed](writable-computed.md) over a normal ref is easier to read.
+
 ## Example
 
 ### Debounced Ref
 
-```js
-function useDebouncedRef(initialValue, delay = 300) {
-  let timeout
+```ts
+import { customRef } from 'vue'
 
-  return customRef((track, trigger) => ({
+function useDebouncedRef<T>(initialValue: T, delay = 300) {
+  let value = initialValue
+  let timeout: ReturnType<typeof setTimeout> | undefined
+
+  return customRef<T>((track, trigger) => ({
     get() {
       track()              // tell Vue "this value is a dependency"
-      return initialValue
+      return value
     },
     set(newValue) {
       clearTimeout(timeout)
       timeout = setTimeout(() => {
-        initialValue = newValue
+        value = newValue
         trigger()          // tell Vue "something changed, re-render"
       }, delay)
     }
@@ -32,7 +40,7 @@ function useDebouncedRef(initialValue, delay = 300) {
 }
 ```
 
-```js
+```ts
 const searchQuery = useDebouncedRef('', 400)
 // searchQuery behaves like a normal ref but only triggers
 // watchers and re-renders 400ms after the user stops typing
@@ -43,13 +51,17 @@ const searchQuery = useDebouncedRef('', 400)
 <!-- watcher only fires after user pauses typing -->
 ```
 
+Be careful with `v-model` here: until the timeout fires, `searchQuery.value` still returns the old value. If anything else re-renders the component during that window, Vue's `v-model` writes that old value back into the input and the user's typing is lost. Keep the input bound to a plain ref and debounce what reacts to it when the component re-renders often.
+
 ### Validated Ref
 
-```js
-function useValidatedRef(initialValue, validator) {
+```ts
+import { customRef } from 'vue'
+
+function useValidatedRef<T>(initialValue: T, validator: (value: T) => boolean) {
   let value = initialValue
 
-  return customRef((track, trigger) => ({
+  return customRef<T>((track, trigger) => ({
     get() {
       track()
       return value

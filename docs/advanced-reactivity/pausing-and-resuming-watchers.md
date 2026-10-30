@@ -12,7 +12,11 @@
 
 ### Basic Usage
 
-```js
+```ts
+import { ref, watchEffect } from 'vue'
+
+const count = ref(0)
+
 const { stop, pause, resume } = watchEffect(() => {
   console.log('count is', count.value)
 })
@@ -30,23 +34,30 @@ stop()
 
 ### Practical Example — Suppressing Auto-Save During Bulk Import
 
-```js
-const { pause, resume } = watch(formData, saveToServer, { deep: true })
+```ts
+const formData = ref<FormData>({ ...emptyForm })
 
-async function importData(rows) {
+const { pause, resume } = watch(formData, (data) => saveToServer(data), { deep: true })
+
+function importData(rows: FormData[]) {
   pause()                          // stop auto-saving during import
 
-  for (const row of rows) {
-    formData.value = { ...row }    // lots of changes, none trigger saves
+  try {
+    for (const row of rows) {
+      formData.value = { ...row }  // lots of changes, none trigger saves
+    }
+  } finally {
+    resume()                       // auto-save resumes and runs ONCE for the paused changes
   }
-
-  await saveToServer(formData.value) // one manual save at the end
-  resume()                          // auto-save resumes
 }
 ```
+
+There is no manual save at the end: when you `resume()`, Vue runs the watcher once if its sources changed while paused. Saving by hand as well would save twice. The `try/finally` makes sure a failed import doesn't leave auto-save switched off.
 
 ## Notes
 
 Without `pause`/`resume` you'd have to track a flag inside the watcher and return early — messier and error-prone.
+
+If you want the paused changes to be *discarded* instead of applied on resume, `pause`/`resume` is the wrong tool: stop the watcher and create a new one, or use the flag.
 
 This was added in Vue 3.5.

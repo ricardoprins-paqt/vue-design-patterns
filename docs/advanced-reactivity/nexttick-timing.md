@@ -16,22 +16,22 @@ Coordinating reactive state changes with DOM manipulation by using `nextTick` to
 Vue batches DOM updates for performance. When you change reactive state, the DOM doesn't update immediately:
 
 ```vue
-<script setup>
-import { ref } from 'vue'
+<script setup lang="ts">
+import { ref, useTemplateRef } from 'vue'
 
 const count = ref(0)
-const buttonRef = ref(null)
+const buttonRef = useTemplateRef<HTMLButtonElement>('button')
 
 function increment() {
   count.value++ // State changes
   
-  console.log(buttonRef.value.textContent) // ❌ Still shows old value!
+  console.log(buttonRef.value?.textContent) // ❌ Still shows old value!
   // The DOM hasn't updated yet
 }
 </script>
 
 <template>
-  <button ref="buttonRef" @click="increment">
+  <button ref="button" @click="increment">
     Count: {{ count }}
   </button>
 </template>
@@ -40,23 +40,23 @@ function increment() {
 **Another common case:**
 
 ```vue
-<script setup>
-import { ref, watch } from 'vue'
+<script setup lang="ts">
+import { ref, watch, useTemplateRef } from 'vue'
 
 const show = ref(false)
-const boxRef = ref(null)
+const boxRef = useTemplateRef<HTMLDivElement>('box')
 
 watch(show, (isShown) => {
   if (isShown) {
-    // ❌ CRASH! boxRef.value is still null
-    boxRef.value.classList.add('animate')
+    // ❌ boxRef.value is still null, the element isn't rendered yet
+    boxRef.value?.classList.add('animate')
   }
 })
 </script>
 
 <template>
   <button @click="show = true">Show Box</button>
-  <div v-if="show" ref="boxRef" class="box">Animated Box</div>
+  <div v-if="show" ref="box" class="box">Animated Box</div>
 </template>
 ```
 
@@ -69,23 +69,23 @@ Use `nextTick()` to wait for the next DOM update cycle:
 ### Example 1: Accessing Updated DOM Content
 
 ```vue
-<script setup>
-import { ref, nextTick } from 'vue'
+<script setup lang="ts">
+import { ref, nextTick, useTemplateRef } from 'vue'
 
 const count = ref(0)
-const buttonRef = ref(null)
+const buttonRef = useTemplateRef<HTMLButtonElement>('button')
 
 async function increment() {
   count.value++
   
   await nextTick() // Wait for DOM update
   
-  console.log(buttonRef.value.textContent) // ✅ Shows new value!
+  console.log(buttonRef.value?.textContent) // ✅ Shows new value!
 }
 </script>
 
 <template>
-  <button ref="buttonRef" @click="increment">
+  <button ref="button" @click="increment">
     Count: {{ count }}
   </button>
 </template>
@@ -94,30 +94,40 @@ async function increment() {
 ### Example 2: Animating Newly Visible Elements
 
 ```vue
-<script setup>
-import { ref, watch, nextTick } from 'vue'
+<script setup lang="ts">
+import { ref, watch, nextTick, useTemplateRef } from 'vue'
 
 const show = ref(false)
-const boxRef = ref(null)
+const boxRef = useTemplateRef<HTMLDivElement>('box')
 
 watch(show, async (isShown) => {
   if (isShown) {
     await nextTick() // Wait for element to mount
-    boxRef.value.classList.add('animate') // ✅ Now it exists
+    boxRef.value?.classList.add('animate') // ✅ Now it exists
   }
 })
 </script>
 
 <template>
   <button @click="show = true">Show Box</button>
-  <div v-if="show" ref="boxRef" class="box">Animated Box</div>
+  <div v-if="show" ref="box" class="box">Animated Box</div>
 </template>
 ```
+
+Inside a watcher there is a simpler option: `flush: 'post'` runs the callback after Vue has updated the DOM, so you don't need `nextTick` at all:
+
+```ts
+watch(show, (isShown) => {
+  if (isShown) boxRef.value?.classList.add('animate') // ✅ DOM already updated
+}, { flush: 'post' })
+```
+
+`watchPostEffect` is the `watchEffect` equivalent. Use `nextTick` for the cases where you are not in a watcher, like event handlers.
 
 ### Example 3: Scrolling to Dynamic Content
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { ref, nextTick } from 'vue'
 
 const items = ref([
@@ -132,7 +142,7 @@ async function addAndScroll() {
   await nextTick() // Wait for item to render
   
   const newItem = document.querySelector(`[data-id="${newId}"]`)
-  newItem.scrollIntoView({ behavior: 'smooth' })
+  newItem?.scrollIntoView({ behavior: 'smooth' })
 }
 </script>
 
@@ -147,24 +157,24 @@ async function addAndScroll() {
 ### Example 4: Focus Management
 
 ```vue
-<script setup>
-import { ref, nextTick } from 'vue'
+<script setup lang="ts">
+import { ref, nextTick, useTemplateRef } from 'vue'
 
 const showInput = ref(false)
-const inputRef = ref(null)
+const inputRef = useTemplateRef<HTMLInputElement>('input')
 
 async function reveal() {
   showInput.value = true
   
   await nextTick() // Wait for input to mount
   
-  inputRef.value.focus() // ✅ Input is now in the DOM
+  inputRef.value?.focus() // ✅ Input is now in the DOM
 }
 </script>
 
 <template>
   <button @click="reveal">Show Input</button>
-  <input v-if="showInput" ref="inputRef" />
+  <input v-if="showInput" ref="input" />
 </template>
 ```
 
@@ -174,7 +184,7 @@ async function reveal() {
 
 **Execution Order:**
 
-```js
+```ts
 console.log('1. Synchronous')
 
 setTimeout(() => console.log('4. setTimeout (macrotask)'), 0)
@@ -198,7 +208,7 @@ Microtasks run **before** the next macrotask, so `nextTick` is faster than `setT
 
 **Two Ways to Use nextTick:**
 
-```js
+```ts
 // 1. As a promise (recommended)
 await nextTick()
 doSomethingWithDOM()
@@ -213,24 +223,25 @@ The promise version is cleaner and avoids callback nesting.
 
 **Why Not setTimeout?**
 `setTimeout(fn, 0)` works but:
-1. It's slower (macrotask vs microtask)
-2. Browsers enforce a minimum ~4ms delay
+1. It's slower (macrotask vs microtask): other tasks, and in the browser often a paint, can run first
+2. Nested timers are clamped to a minimum ~4ms delay
 3. It's less explicit about intent
 
 **Common Use Cases in Libraries:**
 - **vue-router**: Waits for UI to update before scrolling to anchor links
 - **VueUse's `until`**: Uses `nextTick` to stop watchers after conditions are met
-- **Form libraries**: Process field transactions after array operations settle
+- **Form libraries**: [formwerk](https://github.com/formwerkjs/formwerk) queues field register/unregister operations and processes them in `nextTick` (see [Transaction Pattern](transaction-pattern.md))
 
 **When You Don't Need nextTick:**
 - Lifecycle hooks like `onMounted` — the DOM is already ready
 - Inside `watch` callbacks when you're only working with reactive data, not DOM
+- Inside watchers with `flush: 'post'` (or `watchPostEffect`) — they already run after the DOM update
 - Anywhere you're not touching the DOM after state changes
 
 **Batching Behavior:**
 Vue batches all synchronous state changes and applies them in one DOM update. This is why multiple `count++` operations only trigger one re-render:
 
-```js
+```ts
 count.value++ // 1
 count.value++ // 2
 count.value++ // 3
